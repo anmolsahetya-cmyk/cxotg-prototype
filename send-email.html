@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pearl CX — Send Email</title>
+  <link rel="stylesheet" href="shared/styles.css">
+  <style>
+    /* ---- Sheet chrome ---- */
+    .se-backdrop {
+      background: #1B3380;
+      height: 72px;
+      flex-shrink: 0;
+    }
+    .se-sheet {
+      flex: 1;
+      background: #fff;
+      border-radius: 20px 20px 0 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .se-handle {
+      width: 40px; height: 5px; border-radius: 3px; background: #CACACA;
+      margin: 10px auto 0;
+      flex-shrink: 0;
+    }
+    /* ---- Header ---- */
+    .se-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px 10px;
+      flex-shrink: 0;
+    }
+    .se-title {
+      font-size: 20px; font-weight: 700; color: #1B3380;
+      font-family: var(--font);
+    }
+    .se-close {
+      width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: #545E6B; font-size: 20px; border-radius: 50%;
+    }
+    .se-close:active { background: #f0f0f0; }
+    /* ---- Options row ---- */
+    .se-options {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 16px 10px;
+      flex-shrink: 0;
+    }
+    .se-ticket-id {
+      font-size: 14px; color: #909090; font-family: var(--font);
+    }
+    .se-icons {
+      display: flex; align-items: center; gap: 18px;
+    }
+    .se-icon-btn {
+      width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; border-radius: 6px;
+    }
+    .se-icon-btn:active { background: #f0f0f0; }
+    /* ---- Fields ---- */
+    .se-field {
+      display: flex; align-items: center;
+      padding: 12px 16px;
+      border-top: 1px solid #E8E8E8;
+      flex-shrink: 0;
+    }
+    .se-field-label {
+      font-size: 15px; font-weight: 600; color: #404A5B;
+      font-family: var(--font); margin-right: 8px; flex-shrink: 0;
+    }
+    .se-field-value {
+      font-size: 15px; color: #1b87e6; font-family: var(--font); flex: 1;
+    }
+    .se-input {
+      flex: 1; border: none; outline: none; font-size: 15px;
+      color: #404A5B; font-family: var(--font); background: transparent;
+    }
+    .se-input::placeholder { color: #BDBDBD; }
+    /* ---- Body ---- */
+    .se-body-area {
+      flex: 1; overflow-y: auto; display: flex; flex-direction: column;
+    }
+    .se-body-area::-webkit-scrollbar { display: none; }
+    .se-body-textarea {
+      flex: 1; min-height: 120px;
+      border: none; outline: none; resize: none;
+      font-size: 15px; color: #404A5B; font-family: var(--font);
+      padding: 14px 16px; background: transparent; line-height: 1.6;
+      border-top: 1px solid #E8E8E8;
+    }
+    .se-body-textarea::placeholder { color: #BDBDBD; }
+    /* ---- Action history ---- */
+    .se-history {
+      padding: 16px 16px 12px;
+      border-top: 1px solid #E8E8E8;
+      flex-shrink: 0;
+    }
+    .se-history-heading {
+      font-size: 17px; color: #545E6B; font-family: var(--font);
+      margin-bottom: 8px;
+    }
+    .se-history-item {
+      padding: 6px 8px; cursor: pointer;
+    }
+    .se-history-subject {
+      font-size: 15px; color: #404A5B; font-family: var(--font);
+      margin-bottom: 4px;
+    }
+    .se-history-meta {
+      display: flex; align-items: center; gap: 0;
+      font-size: 12px; color: #545E6B; font-family: var(--font);
+    }
+    .se-history-sep {
+      width: 1px; height: 10px; background: #545E6B;
+      margin: 0 8px; flex-shrink: 0;
+    }
+    .se-history-italic { font-style: italic; }
+    /* ---- Keyboard toolbar ---- */
+    .se-kbd-toolbar {
+      display: flex; align-items: center; gap: 2px;
+      padding: 8px 12px; background: #F0F1F3;
+      border-top: 1px solid #D8D8D8;
+      flex-shrink: 0;
+    }
+    .se-kbd-btn {
+      min-width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; border-radius: 4px; padding: 0 4px;
+      font-family: var(--font); color: #404A5B;
+    }
+    .se-kbd-btn:active { background: #ddd; }
+    .se-kbd-b { font-size: 16px; font-weight: 700; }
+    .se-kbd-i { font-size: 16px; font-style: italic; }
+    .se-kbd-u { font-size: 16px; text-decoration: underline; }
+    /* ---- Template sheet ---- */
+    .tpl-row {
+      display: flex; align-items: center;
+      padding: 16px 24px;
+      cursor: pointer; background: #fff;
+    }
+    .tpl-row:active { background: #f5f7fb; }
+    .tpl-row + .tpl-row { border-top: 1px solid #E8E8E8; }
+    .tpl-row-text {
+      font-size: 16px; font-weight: 600; color: #404A5B; font-family: var(--font);
+    }
+    /* ---- AI Draft sheet ---- */
+    .ai-logo-box {
+      width: 48px; height: 48px; border-radius: 6px;
+      border: 1px solid #E0E4EA; background: #fff;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 16px;
+    }
+    .ai-draft-body {
+      font-size: 15px; line-height: 1.75; color: #404A5B; font-family: var(--font);
+    }
+    .ai-action-bar {
+      display: flex; align-items: center; gap: 24px;
+      padding: 14px 20px;
+    }
+    .ai-action-link {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 15px; color: #1b87e6; font-family: var(--font);
+      cursor: pointer;
+    }
+    .ai-action-link:active { opacity: 0.7; }
+    .ai-insert-btn {
+      margin: 0 16px 16px; padding: 16px; background: #1b87e6; color: #fff;
+      border-radius: 10px; font-size: 16px; font-weight: 600; font-family: var(--font);
+      text-align: center; cursor: pointer;
+    }
+    .ai-insert-btn:active { opacity: 0.85; }
+    /* ---- Refine sheet chips ---- */
+    .rf-chip {
+      display: inline-flex; align-items: center;
+      padding: 8px 16px; border-radius: 20px; margin: 4px 6px 4px 0;
+      border: 1px solid #D8E4F0; background: #EEF3FB;
+      font-size: 14px; color: #545E6B; font-family: var(--font);
+      cursor: pointer; user-select: none; white-space: nowrap;
+    }
+    .rf-chip.sel {
+      background: #1B3380; color: #fff; border-color: #1B3380;
+    }
+    .rf-chip:active { opacity: 0.8; }
+    .rf-section-title {
+      font-size: 16px; font-weight: 700; color: #404A5B; font-family: var(--font);
+      padding: 4px 0 8px;
+    }
+    .rf-section { margin-bottom: 20px; }
+    .rf-clear-btn {
+      flex: 1; padding: 14px; border: 1.5px solid #1b87e6; border-radius: 10px;
+      font-size: 15px; font-weight: 600; color: #1b87e6; font-family: var(--font);
+      text-align: center; cursor: pointer; background: #fff;
+    }
+    .rf-clear-btn:active { background: #EEF3FB; }
+    .rf-apply-btn {
+      flex: 1; padding: 14px; background: #1b87e6; border-radius: 10px;
+      font-size: 15px; font-weight: 600; color: #fff; font-family: var(--font);
+      text-align: center; cursor: pointer;
+    }
+    .rf-apply-btn:active { opacity: 0.85; }
+  </style>
+</head>
+<body>
+<script src="shared/data.js"></script>
+<script src="shared/components.js"></script>
+<script>
+
+const ticketId = localStorage.getItem('selectedTicketId') || 'TKT-1041';
+const ticket = DATA.tickets.find(t => t.id === ticketId) || DATA.tickets[0];
+
+let emailState = {
+  to: ticket.email,
+  subject: '',
+  body: '',
+  draftState: 'idle', // 'idle' | 'loading' | 'done'
+  kbdOpen: false,
+};
+
+// Use emailTemplates from shared data (title + templateText fields, matching real app structure)
+
+/* ---- SVG icons ---- */
+function _iconAI() {
+  return `<svg width="20" height="20" viewBox="0 0 24 24" fill="#404A5B">
+    <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5Z"/>
+  </svg>`;
+}
+function _iconTemplate() {
+  return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#404A5B" stroke-width="2" stroke-linecap="round">
+    <rect x="3" y="3" width="18" height="18" rx="2"/>
+    <line x1="7" y1="8" x2="17" y2="8"/>
+    <line x1="7" y1="12" x2="17" y2="12"/>
+    <line x1="7" y1="16" x2="13" y2="16"/>
+  </svg>`;
+}
+function _iconPaperclip() {
+  return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#404A5B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
+  </svg>`;
+}
+function _iconSend() {
+  return `<svg width="20" height="20" viewBox="0 0 24 24" fill="#1b87e6">
+    <path d="M2 21L23 12L2 3V10L17 12L2 14V21Z"/>
+  </svg>`;
+}
+function _iconClose() {
+  return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#545E6B" stroke-width="2.5" stroke-linecap="round">
+    <line x1="18" y1="6" x2="6" y2="18"/>
+    <line x1="6" y1="6" x2="18" y2="18"/>
+  </svg>`;
+}
+function _iconAlignLeft() {
+  return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1b87e6" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>`;
+}
+function _iconAlignCenter() {
+  return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#404A5B" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>`;
+}
+function _iconAlignRight() {
+  return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#404A5B" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="6" y1="18" x2="21" y2="18"/></svg>`;
+}
+function _iconAlignJustify() {
+  return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#404A5B" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>`;
+}
+function _iconLink() {
+  return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#404A5B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>`;
+}
+
+function renderSendEmail() {
+  const numId = ticket.id.replace('TKT-', '');
+
+  return `
+    <div style="display:flex;flex-direction:column;height:100%;background:#1B3380;">
+      <!-- Backdrop (simulates ticket detail screen behind) -->
+      <div class="se-backdrop"></div>
+
+      <!-- White bottom sheet -->
+      <div class="se-sheet">
+        <div class="se-handle"></div>
+
+        <!-- Header -->
+        <div class="se-header">
+          <span class="se-title">Respond via email</span>
+          <div class="se-close" onclick="window.location.href='ticket-detail.html'">${_iconClose()}</div>
+        </div>
+
+        <!-- Options row -->
+        <div class="se-options">
+          <span class="se-ticket-id">Ticket Id #${numId}</span>
+          <div class="se-icons">
+            <div class="se-icon-btn" onclick="openAIDraftSheet()" title="AI Draft">${_iconAI()}</div>
+            <div class="se-icon-btn" onclick="openTemplateSheet()" title="Templates">${_iconTemplate()}</div>
+            <div class="se-icon-btn" onclick="openAttach()" title="Attach">${_iconPaperclip()}</div>
+            <div class="se-icon-btn" onclick="doSend()" title="Send">${_iconSend()}</div>
+          </div>
+        </div>
+
+        <!-- To field -->
+        <div class="se-field">
+          <span class="se-field-label">To</span>
+          <span class="se-field-value">${emailState.to}</span>
+        </div>
+
+        <!-- Subject field -->
+        <div class="se-field">
+          <span class="se-field-label">Subject:</span>
+          <input class="se-input" id="se-subject" type="text" placeholder="Email subject"
+            value="${emailState.subject}" oninput="emailState.subject=this.value"/>
+        </div>
+
+        <!-- Body + scrollable area -->
+        <div class="se-body-area">
+          <textarea class="se-body-textarea" id="se-body" placeholder="email body"
+            onfocus="showKbd()" oninput="emailState.body=this.value">${emailState.body}</textarea>
+
+          <!-- Action history -->
+          <div class="se-history">
+            <div class="se-history-heading">Action history</div>
+            <div class="se-history-item" onclick="openHistorySheet()">
+              <div class="se-history-subject">Hey</div>
+              <div class="se-history-meta">
+                <span>by:&nbsp;</span>
+                <span class="se-history-italic">${DATA.user.name}</span>
+                <div class="se-history-sep"></div>
+                <span>Apr 22, 2026</span>
+                <div class="se-history-sep"></div>
+                <span>total actions: 13</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Keyboard toolbar (visible when kbdOpen) -->
+        ${emailState.kbdOpen ? `
+        <div class="se-kbd-toolbar">
+          <div class="se-kbd-btn se-kbd-b">B</div>
+          <div class="se-kbd-btn se-kbd-i">I</div>
+          <div class="se-kbd-btn se-kbd-u">U</div>
+          <div style="width:1px;height:20px;background:#C8C8C8;margin:0 4px;"></div>
+          <div class="se-kbd-btn">${_iconAlignLeft()}</div>
+          <div class="se-kbd-btn">${_iconAlignCenter()}</div>
+          <div class="se-kbd-btn">${_iconAlignRight()}</div>
+          <div class="se-kbd-btn">${_iconAlignJustify()}</div>
+          <div class="se-kbd-btn">${_iconLink()}</div>
+          <div style="flex:1;"></div>
+          <div class="se-kbd-btn" onclick="hideKbd()" style="font-size:11px;color:#404A5B;">⌨ Hide</div>
+        </div>
+        ` : ''}
+      </div>
+    </div>
+  `;
+}
+
+/* ---- Keyboard simulate ---- */
+window.showKbd = function() {
+  if (!emailState.kbdOpen) {
+    emailState.kbdOpen = true;
+    reRender();
+    requestAnimationFrame(() => document.getElementById('se-body')?.focus());
+  }
+};
+window.hideKbd = function() {
+  emailState.kbdOpen = false;
+  reRender();
+};
+
+function reRender(focusBody) {
+  // Persist any in-progress user input before re-rendering.
+  // Only read from DOM elements when they exist (i.e. the compose screen is visible,
+  // not when called from template/AI apply which already updated emailState directly).
+  const subjEl = document.getElementById('se-subject');
+  const bodyEl = document.getElementById('se-body');
+  if (subjEl) emailState.subject = subjEl.value;
+  if (bodyEl)  emailState.body   = bodyEl.value;
+  document.body.innerHTML = renderPhoneShell(renderSendEmail(), 'closedloop');
+  if (focusBody) requestAnimationFrame(() => document.getElementById('se-body')?.focus());
+}
+
+/* ---- Template sheet ---- */
+window.openTemplateSheet = function() {
+  // Save current input state before injecting overlay
+  const subjEl = document.getElementById('se-subject');
+  const bodyEl = document.getElementById('se-body');
+  if (subjEl) emailState.subject = subjEl.value;
+  if (bodyEl)  emailState.body   = bodyEl.value;
+
+  const screen = document.getElementById('screen');
+  const el = document.createElement('div');
+  el.id = 'se-tpl-sheet';
+  el.style.cssText = 'position:absolute;inset:0;z-index:200;display:flex;flex-direction:column;justify-content:flex-end;';
+  el.innerHTML = `
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,0.35);" onclick="closeTplSheet()"></div>
+    <div style="position:relative;z-index:1;background:#fff;border-radius:20px 20px 0 0;padding-bottom:20px;">
+      <div style="width:40px;height:5px;border-radius:3px;background:#CACACA;margin:10px auto 0;"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;">
+        <span style="font-size:18px;font-weight:600;color:#404A5B;font-family:var(--font);">Select template</span>
+        <div style="cursor:pointer;display:flex;align-items:center;justify-content:center;" onclick="closeTplSheet()">${_iconClose()}</div>
+      </div>
+      ${DATA.emailTemplates.map(t => `
+        <div class="tpl-row" onclick="applyTemplate(${t.id})">
+          <span class="tpl-row-text">${t.title}</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+  screen.appendChild(el);
+};
+
+window.closeTplSheet = function() {
+  document.getElementById('se-tpl-sheet')?.remove();
+};
+
+window.applyTemplate = function(id) {
+  const tpl = DATA.emailTemplates.find(t => t.id === id);
+  // Real app only sets emailBody from templateText — subject is NOT changed
+  if (tpl) {
+    emailState.body = tpl.templateText;
+  }
+  closeTplSheet();
+  // Re-render compose screen with updated body (subject stays as-is)
+  document.body.innerHTML = renderPhoneShell(renderSendEmail(), 'closedloop');
+};
+
+/* ---- AI Draft sheet ---- */
+let _aiDraftGenerated = false; // track whether draft has been shown already
+
+function _svgAIDiamond(size, color) {
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="${color}"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5Z"/></svg>`;
+}
+function _svgRefineIcon() {
+  // Lines with dropdown-style icon (matches DropDownIcon usage in real app)
+  return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1b87e6" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><polyline points="18 9 21 12 18 15"/></svg>`;
+}
+function _svgRegenerateIcon() {
+  return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1b87e6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>`;
+}
+
+window.openAIDraftSheet = function() {
+  document.getElementById('se-ai-sheet')?.remove();
+  const screen = document.getElementById('screen');
+  const el = document.createElement('div');
+  el.id = 'se-ai-sheet';
+  el.style.cssText = 'position:absolute;inset:0;z-index:200;display:flex;flex-direction:column;justify-content:flex-end;';
+  el.innerHTML = `
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,0.4);" onclick="closeAISheet()"></div>
+    <div style="position:relative;z-index:1;background:#fff;border-radius:20px 20px 0 0;height:90%;display:flex;flex-direction:column;">
+      <div style="width:40px;height:5px;border-radius:3px;background:#CACACA;margin:10px auto 0;flex-shrink:0;"></div>
+      <!-- Header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;flex-shrink:0;">
+        <span style="font-size:18px;font-weight:600;color:#404A5B;font-family:var(--font);">Draft with QuestionPro AI</span>
+        <div style="cursor:pointer;display:flex;" onclick="closeAISheet()">${_iconClose()}</div>
+      </div>
+      <!-- Scrollable body -->
+      <div id="se-ai-body" style="flex:1;overflow-y:auto;padding:16px 20px 0;-webkit-overflow-scrolling:touch;">
+        <div id="se-ai-loading" style="display:flex;flex-direction:column;align-items:flex-start;padding:8px 0 20px;">
+          <div style="width:48px;height:48px;border-radius:8px;border:1px solid #E0E4EA;background:#fff;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
+            ${_svgAIDiamond(26, '#404A5B')}
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;width:100%;padding:24px 0;">
+            <div style="font-size:14px;color:#909090;font-family:var(--font);margin-bottom:16px;">Generating…</div>
+            <div style="width:32px;height:32px;border:3px solid #EEF3FB;border-top-color:#1b87e6;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+          </div>
+        </div>
+      </div>
+      <!-- Fixed footer: action bar + insert -->
+      <div id="se-ai-footer" style="flex-shrink:0;"></div>
+    </div>
+  `;
+  screen.appendChild(el);
+  setTimeout(_showAIDraftContent, 1600);
+};
+
+function _showAIDraftContent() {
+  const bodyEl = document.getElementById('se-ai-body');
+  const footerEl = document.getElementById('se-ai-footer');
+  if (!bodyEl || !footerEl) return;
+
+  bodyEl.innerHTML = `
+    <div style="padding:8px 0 20px;">
+      <div class="ai-logo-box">${_svgAIDiamond(26, '#404A5B')}</div>
+      <div class="ai-draft-body">${DATA.aiEmailDraft.body.replace(/\n/g, '<br>')}</div>
+    </div>
+  `;
+
+  footerEl.innerHTML = `
+    <div style="border-top:1px solid #E8E8E8;">
+      <div class="ai-action-bar">
+        <div class="ai-action-link" onclick="openRefineSheet()">
+          ${_svgRefineIcon()} Refine
+        </div>
+        <div class="ai-action-link" onclick="regenerateAIDraft()">
+          ${_svgRegenerateIcon()} Regenerate
+        </div>
+      </div>
+    </div>
+    <div class="ai-insert-btn" onclick="insertAIDraft()">Insert</div>
+  `;
+  _aiDraftGenerated = true;
+}
+
+window.closeAISheet = function() {
+  document.getElementById('se-ai-sheet')?.remove();
+};
+
+window.regenerateAIDraft = function() {
+  _aiDraftGenerated = false;
+  const bodyEl = document.getElementById('se-ai-body');
+  const footerEl = document.getElementById('se-ai-footer');
+  if (!bodyEl) return;
+  bodyEl.innerHTML = `
+    <div style="padding:8px 0 20px;">
+      <div style="width:48px;height:48px;border-radius:8px;border:1px solid #E0E4EA;background:#fff;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
+        ${_svgAIDiamond(26, '#404A5B')}
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;width:100%;padding:24px 0;">
+        <div style="font-size:14px;color:#909090;font-family:var(--font);margin-bottom:16px;">Regenerating…</div>
+        <div style="width:32px;height:32px;border:3px solid #EEF3FB;border-top-color:#1b87e6;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+      </div>
+    </div>
+  `;
+  if (footerEl) footerEl.innerHTML = '';
+  setTimeout(_showAIDraftContent, 1400);
+};
+
+window.insertAIDraft = function() {
+  emailState.subject = DATA.aiEmailDraft.subject;
+  emailState.body    = DATA.aiEmailDraft.body;
+  closeAISheet();
+  document.body.innerHTML = renderPhoneShell(renderSendEmail(), 'closedloop');
+};
+
+/* ---- Refine sub-sheet ---- */
+const TONE_CHIPS   = ['professional', 'empathetic', 'reassuring', 'concise', 'appreciative'];
+const LENGTH_CHIPS = ['shorten', 'elaborate'];
+const INTENT_CHIPS = ['acknowledge', 'request information', 'confirm resolution', 'follow-up'];
+
+let _refineState = { refine: null, intent: null };
+
+function _capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+function _renderRefineChips(chips, type, selected) {
+  return chips.map(name => {
+    const isSel = (type === 'REFINE' ? selected.refine : selected.intent) === name;
+    return `<span class="rf-chip${isSel ? ' sel' : ''}" onclick="toggleRefineChip('${type}','${name}')">${_capitalize(name)}</span>`;
+  }).join('');
+}
+
+function _refreshRefineSheet() {
+  const s = document.getElementById('rf-sheet-inner');
+  if (!s) return;
+  s.querySelectorAll('.rf-chip').forEach(el => {
+    const type = el.getAttribute('data-type');
+    const name = el.getAttribute('data-name');
+    const isSel = type === 'REFINE'
+      ? _refineState.refine === name
+      : _refineState.intent === name;
+    el.classList.toggle('sel', isSel);
+  });
+}
+
+window.openRefineSheet = function() {
+  document.getElementById('se-rf-sheet')?.remove();
+  const screen = document.getElementById('screen');
+  const el = document.createElement('div');
+  el.id = 'se-rf-sheet';
+  el.style.cssText = 'position:absolute;inset:0;z-index:300;display:flex;flex-direction:column;justify-content:flex-end;';
+  el.innerHTML = `
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,0.35);" onclick="closeRefineSheet()"></div>
+    <div id="rf-sheet-inner" style="position:relative;z-index:1;background:#fff;border-radius:20px 20px 0 0;display:flex;flex-direction:column;max-height:90%;">
+      <div style="width:40px;height:5px;border-radius:3px;background:#CACACA;margin:10px auto 0;flex-shrink:0;"></div>
+      <!-- Header: diamond + "Response Assist" + X -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px 10px;flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          ${_svgAIDiamond(20, '#404A5B')}
+          <span style="font-size:20px;color:#404A5B;font-family:var(--font);">Response Assist</span>
+        </div>
+        <div style="cursor:pointer;display:flex;" onclick="closeRefineSheet()">${_iconClose()}</div>
+      </div>
+      <!-- Scrollable sections -->
+      <div style="flex:1;overflow-y:auto;padding:4px 20px 8px;">
+        <div class="rf-section">
+          <div class="rf-section-title">Tone</div>
+          <div>
+            ${TONE_CHIPS.map(name => {
+              const isSel = _refineState.refine === name;
+              return `<span class="rf-chip${isSel?' sel':''}" data-type="REFINE" data-name="${name}" onclick="toggleRefineChip('REFINE','${name}')">${_capitalize(name)}</span>`;
+            }).join('')}
+          </div>
+        </div>
+        <div class="rf-section">
+          <div class="rf-section-title">Length</div>
+          <div>
+            ${LENGTH_CHIPS.map(name => {
+              const isSel = _refineState.refine === name;
+              return `<span class="rf-chip${isSel?' sel':''}" data-type="REFINE" data-name="${name}" onclick="toggleRefineChip('REFINE','${name}')">${_capitalize(name)}</span>`;
+            }).join('')}
+          </div>
+        </div>
+        <div class="rf-section">
+          <div class="rf-section-title">Intent</div>
+          <div>
+            ${INTENT_CHIPS.map(name => {
+              const isSel = _refineState.intent === name;
+              return `<span class="rf-chip${isSel?' sel':''}" data-type="INTENT" data-name="${name}" onclick="toggleRefineChip('INTENT','${name}')">${_capitalize(name)}</span>`;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+      <!-- Footer -->
+      <div style="border-top:1px solid #E8E8E8;padding:16px 20px;display:flex;gap:12px;flex-shrink:0;">
+        <div class="rf-clear-btn" onclick="clearRefine()">Clear</div>
+        <div class="rf-apply-btn" onclick="applyRefine()">Apply</div>
+      </div>
+    </div>
+  `;
+  screen.appendChild(el);
+};
+
+window.closeRefineSheet = function() {
+  document.getElementById('se-rf-sheet')?.remove();
+};
+
+window.toggleRefineChip = function(type, name) {
+  if (type === 'REFINE') {
+    _refineState.refine = _refineState.refine === name ? null : name;
+  } else {
+    _refineState.intent = _refineState.intent === name ? null : name;
+  }
+  // Update chip visual state in-place without full re-render
+  document.querySelectorAll('#rf-sheet-inner .rf-chip').forEach(el => {
+    const t = el.getAttribute('data-type');
+    const n = el.getAttribute('data-name');
+    const sel = t === 'REFINE' ? _refineState.refine === n : _refineState.intent === n;
+    el.classList.toggle('sel', sel);
+  });
+};
+
+window.clearRefine = function() {
+  _refineState = { refine: null, intent: null };
+  document.querySelectorAll('#rf-sheet-inner .rf-chip').forEach(el => el.classList.remove('sel'));
+};
+
+window.applyRefine = function() {
+  closeRefineSheet();
+  // Simulate regenerating with refined options
+  regenerateAIDraft();
+};
+
+/* ---- Attachment ---- */
+window.openAttach = function() {
+  showToast('Attachment feature — tap to upload a file', 'info');
+};
+
+/* ---- History sheet ---- */
+window.openHistorySheet = function() {
+  const screen = document.getElementById('screen');
+  const el = document.createElement('div');
+  el.id = 'se-hist-sheet';
+  el.style.cssText = 'position:absolute;inset:0;z-index:200;display:flex;flex-direction:column;justify-content:flex-end;';
+  el.innerHTML = `
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,0.35);" onclick="closeHistSheet()"></div>
+    <div style="position:relative;z-index:1;background:#fff;border-radius:20px 20px 0 0;padding-bottom:20px;min-height:40%;">
+      <div style="width:40px;height:5px;border-radius:3px;background:#CACACA;margin:10px auto 0;"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px 10px;">
+        <span style="font-size:18px;font-weight:600;color:#404A5B;font-family:var(--font);">Action history</span>
+        <div style="cursor:pointer;" onclick="closeHistSheet()">${_iconClose()}</div>
+      </div>
+      <div style="padding:0 20px;">
+        <div style="padding:10px 0;border-bottom:1px solid #E8E8E8;">
+          <div style="font-size:15px;font-weight:600;color:#404A5B;font-family:var(--font);margin-bottom:4px;">Hey</div>
+          <div style="display:flex;align-items:center;font-size:12px;color:#545E6B;font-family:var(--font);">
+            <span>by:&nbsp;</span><span style="font-style:italic;">${DATA.user.name}</span>
+            <div style="width:1px;height:10px;background:#545E6B;margin:0 8px;"></div>
+            <span>Apr 22, 2026</span>
+            <div style="width:1px;height:10px;background:#545E6B;margin:0 8px;"></div>
+            <span>total actions: 13</span>
+          </div>
+        </div>
+        <div style="padding-top:20px;text-align:center;font-size:13px;color:#909090;font-family:var(--font);">No other action emails for this ticket</div>
+      </div>
+    </div>
+  `;
+  screen.appendChild(el);
+};
+window.closeHistSheet = function() {
+  document.getElementById('se-hist-sheet')?.remove();
+};
+
+/* ---- Send ---- */
+window.doSend = function() {
+  const subject = document.getElementById('se-subject')?.value?.trim() || emailState.subject?.trim();
+  if (!subject) {
+    showToast('Please add a subject', 'error');
+    return;
+  }
+  showToast('Sending…', 'info');
+  setTimeout(() => {
+    showToast('Email sent successfully', 'success');
+    setTimeout(() => { window.location.href = 'ticket-detail.html'; }, 1500);
+  }, 1400);
+};
+
+/* ---- Init ---- */
+document.body.innerHTML = renderPhoneShell(renderSendEmail(), 'closedloop');
+</script>
+</body>
+</html>

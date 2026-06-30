@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Pearl CX — Closedloop</title>
+  <link rel="stylesheet" href="shared/styles.css">
+  <style>
+    /* Filter chips */
+    .fl-chip {
+      display: inline-flex; align-items: center;
+      padding: 8px 14px; border-radius: 20px;
+      background: #EEF3FB; color: #545E6B;
+      font-size: 14px; font-family: var(--font);
+      cursor: pointer; user-select: none; white-space: nowrap;
+    }
+    .fl-chip.sel { background: #1B3380; color: #fff; }
+
+    /* Toggle */
+    .tgl { width: 50px; height: 28px; border-radius: 14px; background: #BDBDBD; position: relative; cursor: pointer; transition: background 200ms; flex-shrink: 0; }
+    .tgl.on { background: #1b87e6; }
+    .tgl::after { content: ''; width: 24px; height: 24px; border-radius: 12px; background: #fff; position: absolute; top: 2px; left: 2px; transition: transform 200ms; box-shadow: 0 1px 3px rgba(0,0,0,0.25); }
+    .tgl.on::after { transform: translateX(22px); }
+  </style>
+</head>
+<body>
+<script src="shared/data.js"></script>
+<script src="shared/components.js"></script>
+<script>
+
+/* ============================================================
+   State
+   ============================================================ */
+let clState = {
+  segment: DATA.currentSegment,
+  searchQuery: '',
+  filters: { status: [], priority: [], type: [], tags: [], onlyMyTickets: true },
+  filterCount: 1,
+  visibleCount: 10,
+};
+
+const urlParams = new URLSearchParams(window.location.search);
+const statusParam = urlParams.get('status');
+if (statusParam !== null) {
+  clState.filters.status = [parseInt(statusParam)];
+  clState.filterCount += 1;
+}
+
+/* ============================================================
+   Filter logic
+   ============================================================ */
+function getFilteredTickets() {
+  let tickets = DATA.tickets;
+  if (clState.searchQuery) {
+    const q = clState.searchQuery.toLowerCase();
+    tickets = tickets.filter(t =>
+      t.customer.toLowerCase().includes(q) ||
+      t.id.toLowerCase().includes(q) ||
+      t.email.toLowerCase().includes(q) ||
+      t.title.toLowerCase().includes(q)
+    );
+  }
+  if (clState.filters.status.length)   tickets = tickets.filter(t => clState.filters.status.includes(t.statusId));
+  if (clState.filters.priority.length) tickets = tickets.filter(t => clState.filters.priority.includes(t.priorityId));
+  if (clState.filters.type.length)     tickets = tickets.filter(t => clState.filters.type.includes(t.typeId));
+  return tickets;
+}
+
+/* ============================================================
+   Ticket card — override shared renderTicketCard
+   ============================================================ */
+const _PRI_COLORS = ['#42BD84', '#F6C140', '#E4632D', '#DA2222'];
+const _PRI_LABELS = ['Low', 'Medium', 'High', 'Critical'];
+const _STA_STYLE  = [
+  'border:1px dotted #545E6B;color:#545E6B;background:transparent;',
+  'background:#40CA5A;color:#fff;border:none;',
+  'background:#FF9145;color:#fff;border:none;',
+  'background:#1b87e6;color:#fff;border:none;',
+];
+const _STA_LABELS = ['New', 'Open', 'Escalated', 'Resolved'];
+
+function _shortDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function _priFlag(color) {
+  return `<svg width="14" height="14" viewBox="0 0 24 24" fill="${color}">
+    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+    <line x1="4" y1="22" x2="4" y2="15" stroke="${color}" stroke-width="2" stroke-linecap="round"/>
+  </svg>`;
+}
+
+function renderTicketCard(ticket, onclick) {
+  const pri = _PRI_COLORS[ticket.priorityId] || '#42BD84';
+  const priLabel = _PRI_LABELS[ticket.priorityId] || 'Low';
+  const staStyle = _STA_STYLE[ticket.statusId] || _STA_STYLE[0];
+  const staLabel = _STA_LABELS[ticket.statusId] || 'New';
+  const assignee = DATA.managers.find(m => m.id === ticket.assigneeId);
+  const dateStr  = _shortDate(ticket.issueDate);
+  const desc = (ticket.description || ticket.title || '');
+
+  const datePillStyle = ticket.isOverdue
+    ? 'background:#F85271;color:#fff;border:none;'
+    : 'background:#EEF3FB;color:#545E6B;border:none;';
+
+  const dateIconSVG = ticket.isOverdue
+    ? `<svg width="13" height="13" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="white"/><rect x="11" y="7" width="2" height="6" rx="1" fill="#F85271"/><rect x="11" y="15" width="2" height="2" rx="1" fill="#F85271"/></svg>`
+    : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#545E6B" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
+
+  return `
+    <div onclick="${onclick}"
+      style="background:#fff;border:1px solid #e2e4e8;border-radius:8px;margin:0 16px 8px;padding:16px;cursor:pointer;">
+
+      <!-- email | ticket ID -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;gap:5px;min-width:0;flex:1;margin-right:8px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9B9B9B" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          <span style="font-size:14px;color:#9B9B9B;font-family:var(--font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${ticket.email}</span>
+        </div>
+        <span style="font-size:14px;color:#1b87e6;font-weight:600;font-family:var(--font);flex-shrink:0;">${ticket.id}</span>
+      </div>
+
+      <!-- description (3 lines max) -->
+      <div style="font-size:16px;color:#404A5B;font-family:var(--font);line-height:1.45;margin-bottom:12px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">
+        ${desc}
+      </div>
+
+      <!-- avatar | date chip | priority | status -->
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:nowrap;overflow:hidden;">
+        ${assignee ? `<div style="width:28px;height:28px;border-radius:14px;background:${assignee.avatarColor};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;font-family:var(--font);flex-shrink:0;">${assignee.initials}</div>` : ''}
+        <div style="display:flex;align-items:center;gap:4px;${datePillStyle}border-radius:20px;padding:5px 10px;flex-shrink:0;font-size:13px;font-family:var(--font);font-weight:500;">
+          ${dateIconSVG}
+          <span>${dateStr}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+          ${_priFlag(pri)}
+          <span style="font-size:13px;color:#545E6B;font-family:var(--font);">${priLabel}</span>
+        </div>
+        <div style="${staStyle}border-radius:20px;padding:5px 10px;font-size:13px;font-family:var(--font);font-weight:500;flex-shrink:0;white-space:nowrap;">
+          ${staLabel}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ============================================================
+   Main render
+   ============================================================ */
+function renderClosedLoop() {
+  const tickets = getFilteredTickets();
+  const visible = tickets.slice(0, clState.visibleCount);
+  const filterLabel = clState.filterCount > 0 ? `Filters (${clState.filterCount})` : 'Filters';
+
+  return `
+    <div class="screen-content">
+
+      <!-- Dark navy header -->
+      <div style="background:#1B3380;display:flex;align-items:center;padding:12px 16px 14px;gap:12px;flex-shrink:0;">
+        <button onclick="openDrawer()" style="background:none;border:none;cursor:pointer;color:#fff;display:flex;align-items:center;padding:4px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+        <div style="flex:1;">
+          <div style="font-size:22px;font-weight:700;color:#fff;font-family:var(--font);line-height:1.2;">Closedloop</div>
+          <div style="font-size:14px;color:rgba(255,255,255,0.80);font-family:var(--font);">${clState.segment}</div>
+        </div>
+        <button onclick="window.location.href='notifications.html'" style="background:none;border:none;cursor:pointer;position:relative;color:#fff;display:flex;align-items:center;padding:4px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+          <div style="position:absolute;top:-2px;right:-2px;background:#E03C3C;border-radius:10px;min-width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;font-family:var(--font);padding:0 4px;">${DATA.notificationCount}</div>
+        </button>
+      </div>
+
+      <!-- Date / Filter bar -->
+      <div style="background:#fff;border-bottom:1px solid #ebebeb;display:flex;align-items:center;padding:10px 16px;gap:12px;flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:8px;border:1px solid #d0d3d8;border-radius:8px;padding:7px 12px;flex:1;cursor:pointer;" onclick="showToast('Use Dashboard to adjust date range','info')">
+          <span style="font-size:14px;color:#404A5B;font-family:var(--font);">${DATA.dateRangeLabel}</span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#545E6B" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-left:auto;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <button onclick="openFilterSheet()" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;padding:4px;white-space:nowrap;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="#1b87e6"><polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46 22,3"/></svg>
+          <span style="font-size:15px;font-weight:600;font-family:var(--font);color:#1b87e6;">${filterLabel}</span>
+        </button>
+      </div>
+
+      <!-- Search bar -->
+      <div style="background:#fff;padding:10px 16px;border-bottom:1px solid #f0f0f0;flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:8px;background:#F3F4F6;border:1px solid #e2e4e8;border-radius:22px;padding:9px 14px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9B9B9B" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" placeholder="Search by #ID, name, email"
+            value="${clState.searchQuery}"
+            oninput="onSearch(this.value)"
+            id="tl-search"
+            style="flex:1;border:none;background:transparent;font-size:15px;color:#545E6B;font-family:var(--font);outline:none;"/>
+        </div>
+      </div>
+
+      <!-- Ticket list -->
+      <div id="tl-list" style="flex:1;overflow-y:auto;background:#F5F5F7;padding:8px 0 80px;">
+        ${_ticketListInner(visible, tickets)}
+      </div>
+
+      <!-- FAB -->
+      <a class="fab" href="create-ticket.html">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+      </a>
+    </div>
+  `;
+}
+
+function _ticketListInner(visible, tickets) {
+  if (!visible.length) return `
+    <div style="padding:60px 24px;text-align:center;">
+      <div style="font-size:40px;margin-bottom:16px;">🎫</div>
+      <div style="font-size:17px;font-weight:600;color:#404A5B;font-family:var(--font);">No tickets found</div>
+      <div style="font-size:14px;color:#9B9B9B;font-family:var(--font);margin-top:8px;">Try adjusting your search or filters</div>
+    </div>`;
+  return visible.map(t => renderTicketCard(t, `openTicket('${t.id}')`)).join('') +
+    (tickets.length > clState.visibleCount
+      ? `<div style="padding:16px;text-align:center;cursor:pointer;color:#1b87e6;font-size:14px;font-weight:600;font-family:var(--font);" onclick="loadMore()">Load more (${tickets.length - clState.visibleCount} remaining)</div>`
+      : `<div style="padding:12px;text-align:center;font-size:11px;color:#9B9B9B;font-family:var(--font);">${tickets.length} ticket${tickets.length !== 1 ? 's' : ''} shown</div>`
+    );
+}
+
+/* ============================================================
+   Actions
+   ============================================================ */
+window.onSearch = function(val) {
+  clState.searchQuery = val;
+  clState.visibleCount = 10;
+  refreshList();
+};
+
+window.loadMore = function() {
+  clState.visibleCount += 10;
+  refreshList();
+};
+
+window.openTicket = function(id) {
+  localStorage.setItem('selectedTicketId', id);
+  window.location.href = 'ticket-detail.html';
+};
+
+function refreshList() {
+  const tickets = getFilteredTickets();
+  const visible = tickets.slice(0, clState.visibleCount);
+  const list = document.getElementById('tl-list');
+  if (list) list.innerHTML = _ticketListInner(visible, tickets);
+}
+
+/* ============================================================
+   Overlay helpers
+   ============================================================ */
+function _rmOv(id) { const el = document.getElementById(id); if (el) el.remove(); }
+
+function _injOv(id, z, innerHTML) {
+  _rmOv(id);
+  const screen = document.getElementById('screen');
+  if (!screen) return;
+  const el = document.createElement('div');
+  el.id = id;
+  el.style.cssText = `position:absolute;inset:0;z-index:${z};display:flex;flex-direction:column;justify-content:flex-end;`;
+  el.innerHTML = innerHTML;
+  screen.appendChild(el);
+}
+
+/* ============================================================
+   Filter sheet
+   ============================================================ */
+const _FS = ['New','Open','Escalated','Resolved'];
+const _FP = ['Low','Medium','High','Critical'];
+const _FT = ['Manual ticket','Detractor alert'];
+
+let _df = {};
+
+function openFilterSheet() {
+  _df = JSON.parse(JSON.stringify(clState.filters));
+  _injOv('tl-fov', 200, _filterHTML());
+}
+
+function _chipRow(group, labels) {
+  return `<div style="display:flex;flex-wrap:wrap;gap:8px;padding:10px 16px 14px;">
+    ${labels.map((lbl, i) => `
+      <div class="fl-chip${(_df[group]||[]).includes(i) ? ' sel' : ''}" id="fc-${group}-${i}"
+        onclick="toggleChip('${group}',${i})">${lbl}</div>`
+    ).join('')}
+  </div>`;
+}
+
+function _filterHTML() {
+  const on = _df.onlyMyTickets;
+  return `
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,0.30);" onclick="closeFilter()"></div>
+    <div style="position:relative;z-index:1;background:#fff;border-radius:20px 20px 0 0;display:flex;flex-direction:column;max-height:92%;">
+      <div style="display:flex;justify-content:center;padding:10px 0 0;flex-shrink:0;">
+        <div style="width:40px;height:4px;background:#DCDCDC;border-radius:2px;"></div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;flex-shrink:0;">
+        <span style="font-size:26px;font-weight:700;color:#404A5B;font-family:var(--font);">Filter by</span>
+        <button onclick="closeFilter()" style="background:none;border:none;font-size:26px;color:#545E6B;cursor:pointer;line-height:1;padding:0;">×</button>
+      </div>
+      <div style="flex:1;overflow-y:auto;">
+        <div style="padding:4px 16px 2px;"><span style="font-size:17px;font-weight:700;color:#404A5B;font-family:var(--font);">Status</span></div>
+        ${_chipRow('status', _FS)}
+        <div style="height:1px;background:#F0F0F0;margin:0 16px;"></div>
+        <div style="padding:14px 16px 2px;"><span style="font-size:17px;font-weight:700;color:#404A5B;font-family:var(--font);">Priority</span></div>
+        ${_chipRow('priority', _FP)}
+        <div style="height:1px;background:#F0F0F0;margin:0 16px;"></div>
+        <div style="padding:14px 16px 2px;"><span style="font-size:17px;font-weight:700;color:#404A5B;font-family:var(--font);">Type</span></div>
+        ${_chipRow('type', _FT)}
+        <div style="height:1px;background:#F0F0F0;margin:0 16px;"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;">
+          <span style="font-size:17px;font-weight:700;color:#404A5B;font-family:var(--font);">AI tags</span>
+          <span onclick="openAiTags()" style="font-size:15px;color:#1b87e6;font-family:var(--font);cursor:pointer;font-weight:500;">Select</span>
+        </div>
+        <div style="height:1px;background:#F0F0F0;margin:0 16px;"></div>
+        <div onclick="toggleMyTickets()" style="display:flex;align-items:center;justify-content:space-between;padding:16px 16px 18px;cursor:pointer;">
+          <span style="font-size:17px;font-weight:700;color:#404A5B;font-family:var(--font);">Only my tickets</span>
+          <div class="tgl${on ? ' on' : ''}" id="tl-tgl" style="pointer-events:none;"></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;padding:12px 16px 20px;flex-shrink:0;border-top:1px solid #F0F0F0;">
+        <button onclick="clearFilters()" style="flex:1;height:52px;background:#fff;border:1.5px solid #1b87e6;border-radius:8px;color:#1b87e6;font-size:17px;font-family:var(--font);font-weight:600;cursor:pointer;">Clear</button>
+        <button onclick="applyFilters()" style="flex:1;height:52px;background:#1b87e6;border:none;border-radius:8px;color:#fff;font-size:17px;font-family:var(--font);font-weight:600;cursor:pointer;">Apply</button>
+      </div>
+    </div>`;
+}
+
+window.closeFilter = function() { _rmOv('tl-fov'); };
+
+window.toggleChip = function(group, id) {
+  if (!_df[group]) _df[group] = [];
+  const idx = _df[group].indexOf(id);
+  if (idx > -1) _df[group].splice(idx, 1);
+  else _df[group].push(id);
+  const el = document.getElementById(`fc-${group}-${id}`);
+  if (el) { if (_df[group].includes(id)) el.classList.add('sel'); else el.classList.remove('sel'); }
+};
+
+window.toggleMyTickets = function() {
+  _df.onlyMyTickets = !_df.onlyMyTickets;
+  const tgl = document.getElementById('tl-tgl');
+  if (tgl) { if (_df.onlyMyTickets) tgl.classList.add('on'); else tgl.classList.remove('on'); }
+};
+
+window.clearFilters = function() {
+  _df = { status: [], priority: [], type: [], tags: [], onlyMyTickets: false };
+  _rmOv('tl-fov');
+  _injOv('tl-fov', 200, _filterHTML());
+};
+
+window.applyFilters = function() {
+  clState.filters = JSON.parse(JSON.stringify(_df));
+  const chipCount = (clState.filters.status||[]).length + (clState.filters.priority||[]).length + (clState.filters.type||[]).length;
+  const tagCount  = (clState.filters.tags||[]).length > 0 ? 1 : 0;
+  const myCount   = clState.filters.onlyMyTickets ? 1 : 0;
+  clState.filterCount = chipCount + tagCount + myCount;
+  clState.visibleCount = 10;
+  _rmOv('tl-fov');
+  document.body.innerHTML = renderPhoneShell(renderClosedLoop(), 'closedloop');
+};
+
+/* ============================================================
+   AI Tags sub-sheet
+   ============================================================ */
+let _aiDraft = [];
+
+function openAiTags() {
+  _aiDraft = [...(_df.tags || [])];
+  _injOv('tl-aiov', 300, _aiTagsHTML(''));
+}
+
+function _aiTagsHTML(q) {
+  const all = DATA.aiTags || [];
+  const tags = q ? all.filter(t => t.toLowerCase().includes(q.toLowerCase())) : all;
+  return `
+    <div style="position:relative;z-index:1;background:#fff;border-radius:20px 20px 0 0;display:flex;flex-direction:column;max-height:90%;">
+      <div style="display:flex;justify-content:center;padding:10px 0 0;flex-shrink:0;">
+        <div style="width:40px;height:4px;background:#DCDCDC;border-radius:2px;"></div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;flex-shrink:0;">
+        <span style="font-size:26px;font-weight:700;color:#404A5B;font-family:var(--font);">AI tags</span>
+        <span onclick="applyAiTags()" style="font-size:17px;color:#1b87e6;font-family:var(--font);cursor:pointer;font-weight:500;padding:4px 0;">Done</span>
+      </div>
+      <div style="padding:0 16px 12px;flex-shrink:0;">
+        <div style="background:#F3F4F6;border-bottom:1px solid #e2e4e8;display:flex;align-items:center;padding:10px 14px;border-radius:4px 4px 0 0;">
+          <input type="text" placeholder="Search tags" id="ai-sq" value="${q}"
+            oninput="refreshAiTags(this.value)"
+            style="flex:1;border:none;background:transparent;font-size:15px;color:#545E6B;font-family:var(--font);outline:none;"/>
+        </div>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:0 16px 20px;">
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+          ${tags.map(tag => {
+            const sel = _aiDraft.includes(tag);
+            const safeTag = tag.replace(/'/g, "\\'");
+            return `<div onclick="toggleAiTag('${safeTag}')"
+              style="display:inline-flex;align-items:center;padding:9px 14px;border-radius:20px;font-size:14px;font-family:var(--font);cursor:pointer;user-select:none;${sel ? 'background:#1B3380;color:#fff;' : 'background:#EEF3FB;color:#545E6B;'}">
+              ${tag}
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>`;
+}
+
+window.refreshAiTags = function(q) {
+  const ov = document.getElementById('tl-aiov');
+  if (ov) {
+    ov.innerHTML = _aiTagsHTML(q);
+    const inp = document.getElementById('ai-sq');
+    if (inp) { inp.focus(); inp.setSelectionRange(q.length, q.length); }
+  }
+};
+
+window.toggleAiTag = function(tag) {
+  const idx = _aiDraft.indexOf(tag);
+  if (idx > -1) _aiDraft.splice(idx, 1);
+  else _aiDraft.push(tag);
+  const q = document.getElementById('ai-sq')?.value || '';
+  refreshAiTags(q);
+};
+
+window.applyAiTags = function() {
+  _df.tags = [..._aiDraft];
+  _rmOv('tl-aiov');
+  // Rebuild filter sheet with updated tags state
+  _rmOv('tl-fov');
+  _injOv('tl-fov', 200, _filterHTML());
+};
+
+/* ============================================================
+   Init
+   ============================================================ */
+document.body.innerHTML = renderPhoneShell(renderClosedLoop(), 'closedloop');
+
+</script>
+</body>
+</html>

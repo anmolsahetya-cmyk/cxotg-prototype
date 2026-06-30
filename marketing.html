@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pearl CX — Onboarding</title>
+  <link rel="stylesheet" href="shared/styles.css">
+  <style>
+    /*
+      Exact values from IntroPage.js + MarketingScreen.js ($rem=15, iOS phone):
+        safeAreaView.paddingHorizontal = PaddingConstants.tab2 = 17.5px
+        safeAreaView.paddingBottom     = PaddingConstants.tab2 = 17.5px
+        logoImageView.marginTop        = MarginConstants.tab1_4x = 30px
+        logoImageView.marginBottom     = MarginConstants.tab1_8x = 60px
+        introView.paddingHorizontal    = MarginConstants.tab1_4x = 30px
+        introTextHeader.fontSize (iOS) = TextSizes.donutPercentText = 33px, FiraSans-Regular
+        introText.fontSize (iOS)       = TextSizes.largeText = 19.5px, FiraSans-Regular
+        introText.marginTop            = MarginConstants.tab1 = 7.5px
+        both text colors               = Colors.filterIconColor = #545E6B
+        imageSize                      = Math.round(390 * 0.75) = 293px
+        dots: dotColor=#909090, activeDotColor=#1b87e6, bottom=30px
+        button: QPButton variant=primary, full-width, inside paddingHorizontal container
+    */
+
+    .marketing-screen {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+      height: 100%;
+      /* safeAreaView paddingHorizontal */
+      padding-left: 17.5px;
+      padding-right: 17.5px;
+      padding-bottom: 17.5px;
+    }
+
+    .swiper-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .slides-track {
+      display: flex;
+      width: 400%;
+      height: 100%;
+      transition: transform 380ms cubic-bezier(0.25,0.46,0.45,0.94);
+    }
+
+    .slide {
+      width: 25%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    .slide-image-wrap {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 30px;
+      margin-bottom: 60px;
+      flex-shrink: 0;
+    }
+
+    .slide-image-wrap img {
+      width: 293px;
+      height: 293px;
+      object-fit: contain;
+    }
+
+    .slide-text {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      /* introView.paddingHorizontal — adds to parent's 17.5px */
+      padding-left: 30px;
+      padding-right: 30px;
+    }
+
+    .slide-title {
+      font-size: 33px;
+      font-weight: 400; /* FiraSans-Regular */
+      color: #545E6B;
+      line-height: 1.2;
+    }
+
+    .slide-desc {
+      font-size: 19.5px;
+      font-weight: 400; /* FiraSans-Regular */
+      color: #545E6B;
+      line-height: 1.45;
+      margin-top: 7.5px;
+    }
+
+    /* Dots — positioned at bottom of swiper area */
+    .swiper-dots {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      padding: 20px 0 18px;
+      flex-shrink: 0;
+    }
+    .swiper-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #909090;
+      cursor: pointer;
+      transition: background 200ms;
+      flex-shrink: 0;
+    }
+    .swiper-dot.active {
+      background: #1b87e6;
+    }
+
+    /* QPButton sits inside the paddingHorizontal container */
+    .marketing-footer {
+      flex-shrink: 0;
+    }
+
+    /* ---- Login / ForgotPassword shared ---- */
+
+    /* Full-screen background image, same as LoginBackground */
+    .login-bg {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background-image: url('assets/background1.png');
+      background-size: cover;
+      background-position: center top;
+      overflow-y: auto;
+    }
+    .login-bg::-webkit-scrollbar { display: none; }
+
+    /* scrollContainer: flexGrow=1, justifyContent=space-between */
+    .login-scroll {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding-top: 17.5px; /* LoginBackground container paddingTop */
+    }
+
+    /* logoContainer: paddingTop=tab1_16x=120px, centered */
+    .login-logo-area {
+      padding-top: 120px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .login-logo-area img { width: 160px; height: 40px; object-fit: contain; }
+
+    /* VerticalSpaceBox height=tab1_4x=30px */
+    .login-logo-spacer { height: 30px; }
+
+    /* "CX On The Go": donutPercentRegularText = 33px, FiraSans-Regular, #545E6B */
+    .login-app-name {
+      font-size: 33px;
+      font-weight: 400;
+      color: #545E6B;
+      text-align: center;
+    }
+
+    /* Fields container: paddingTop=tab1_2x=15px, centered */
+    .login-fields {
+      padding-top: 15px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* QPTextField flat mode: bottom border only, floating label, width=390/1.05=371px */
+    .flat-field {
+      position: relative;
+      width: 371px;
+      margin-bottom: 27.5px;
+      padding: 0 7.5px;
+      box-sizing: border-box;
+    }
+    .flat-field-inner {
+      position: relative;
+      border-bottom: 1.5px solid #545E6B;
+      transition: border-color 150ms;
+    }
+    .flat-field-inner:focus-within { border-bottom-color: #1b87e6; }
+    .flat-field-inner:focus-within .flat-label { color: #1b87e6; top: 0; font-size: 12px; }
+    .flat-field-inner.has-value .flat-label { top: 0; font-size: 12px; }
+
+    .flat-label {
+      position: absolute;
+      left: 0;
+      top: 16px;
+      font-size: 15px;
+      font-weight: 400;
+      color: #9B9B9B;
+      pointer-events: none;
+      transition: top 150ms, font-size 150ms, color 150ms;
+    }
+    .flat-input {
+      display: block;
+      width: 100%;
+      height: 37.5px;
+      padding: 14px 0 4px;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: 15px;
+      font-weight: 400;
+      color: #545E6B;
+      box-sizing: border-box;
+    }
+    .flat-input-eye {
+      position: absolute;
+      right: 0;
+      top: 10px;
+      color: #545E6B;
+      cursor: pointer;
+      display: flex;
+    }
+
+    /* Bottom actions: paddingBottom=tab1_2x=15px */
+    .login-bottom {
+      padding: 0 15px 15px; /* paddingHorizontal=tab1_2x=15px, paddingBottom=tab1_2x=15px */
+    }
+    /* Sign-in button: height=tab4=37.5px */
+    .login-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 37.5px;
+      background: #1b87e6;
+      border: none;
+      border-radius: 4px;
+      font-size: 16.5px; /* secondary2RegularText */
+      font-weight: 400;
+      color: #fff;
+      cursor: pointer;
+    }
+    /* Forgot password: height=37.5px, marginTop=17.5px, marginBottom=17.5px, 18px #1b87e6 */
+    .forgot-link {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 37.5px;
+      margin-top: 17.5px;
+      margin-bottom: 17.5px;
+      background: transparent;
+      border: none;
+      font-size: 18px;
+      font-weight: 400;
+      color: #1b87e6;
+      cursor: pointer;
+    }
+
+    /* ForgotPassword: description text */
+    /* fontSize=secondary=15px, FiraSans-Light, color=Colors.primary=#707070 */
+    /* marginVertical=tab1=7.5px, marginHorizontal=tab2=17.5px */
+    .forgot-desc {
+      font-size: 15px;
+      font-weight: 300; /* FiraSans-Light */
+      color: #707070;
+      text-align: center;
+      margin: 7.5px 17.5px;
+    }
+
+    /* Back button on forgot password */
+    .login-back-btn {
+      position: absolute;
+      top: 12px;
+      left: 8px;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      color: #545E6B;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+<script src="shared/data.js"></script>
+<script src="shared/components.js"></script>
+<script>
+
+let currentSlide = 0;
+const TOTAL_SLIDES = 4;
+
+const slides = [
+  {
+    title: 'Swift ticket mastery',
+    desc: 'Handle customer tickets anywhere!\nEnsure customer satisfaction and\nteam success.',
+    img: 'assets/marketing_01.svg',
+  },
+  {
+    title: 'Customer pulse\ncheck',
+    desc: 'Rapidly respond to customers\nqueries and feedback, guaranteeing\nsatisfaction',
+    img: 'assets/marketing_02.svg',
+  },
+  {
+    title: 'Customer insights',
+    desc: 'Access NPS and satisfaction scores\ninstantly for continuous\nimprovement and success',
+    img: 'assets/marketing_03.svg',
+  },
+  {
+    title: 'Proactive issue\nresolution',
+    desc: 'Elevate support by promptly\naddressing major issues and\nensuring no gaps.',
+    img: 'assets/marketing_04.svg',
+  },
+];
+
+function renderMarketing() {
+  return `
+    <div class="marketing-screen">
+      <div class="swiper-container" id="swiper-container">
+        <div class="slides-track" id="slides-track">
+          ${slides.map(s => `
+            <div class="slide">
+              <div class="slide-image-wrap">
+                <img src="${s.img}" alt="" draggable="false"/>
+              </div>
+              <div class="slide-text">
+                <div class="slide-title">${s.title.replace(/\n/g,'<br>')}</div>
+                <div class="slide-desc">${s.desc.replace(/\n/g,'<br>')}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      <div class="swiper-dots" id="swiper-dots">
+        ${slides.map((_, i) => `<div class="swiper-dot${i === 0 ? ' active' : ''}" onclick="goToSlide(${i})"></div>`).join('')}
+      </div>
+      <div class="marketing-footer">
+        <button class="btn btn-primary btn-full" onclick="navigate(renderLogin)">Sign in</button>
+      </div>
+    </div>
+  `;
+}
+
+function flatField(id, label, type, value) {
+  const hasValue = value ? ' has-value' : '';
+  return `
+    <div class="flat-field">
+      <div class="flat-field-inner${hasValue}" id="${id}-wrap">
+        <span class="flat-label">${label}</span>
+        <input
+          class="flat-input"
+          type="${type}"
+          id="${id}"
+          value="${value}"
+          autocomplete="off"
+          oninput="syncFlatField('${id}')"
+        />
+        ${type === 'password' ? `
+        <span class="flat-input-eye" onclick="toggleFlatPassword('${id}', this)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </span>` : ''}
+      </div>
+    </div>`;
+}
+
+function renderLogin() {
+  return `
+    <div class="login-bg">
+      <div class="login-scroll">
+        <div class="login-logo-area">
+          <img src="assets/questionpro_banner.svg" alt="QuestionPro" style="width:160px;height:40px;object-fit:contain;"/>
+          <div class="login-logo-spacer"></div>
+          <span class="login-app-name">CX On The Go</span>
+        </div>
+
+        <div class="login-fields">
+          ${flatField('login-email',    'Email',       'text',     'sarah.chen@retailco.com')}
+          ${flatField('login-password', 'Password',    'password', '••••••••')}
+          ${flatField('login-code',     'Access code', 'text',     'RETAILCO')}
+        </div>
+
+        <div class="login-bottom">
+          <button class="login-btn" onclick="doLogin()">Sign in</button>
+          <button class="forgot-link" onclick="navigate(renderForgotPassword)">Forgot password?</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderForgotPassword() {
+  return `
+    <div class="login-bg" style="position:relative;">
+      <button class="login-back-btn" onclick="goBack()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div class="login-scroll">
+        <div class="login-logo-area">
+          <img src="assets/questionpro_banner.svg" alt="QuestionPro" style="width:160px;height:40px;object-fit:contain;"/>
+        </div>
+
+        <div class="login-fields">
+          <p class="forgot-desc">Please enter the details below to reset your password.</p>
+          ${flatField('forgot-email', 'Email',       'text', '')}
+          ${flatField('forgot-code',  'Access code', 'text', '')}
+        </div>
+
+        <div class="login-bottom">
+          <button class="login-btn" onclick="sendReset()">Reset password</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ---- Swiper ---- */
+window.goToSlide = function(index) {
+  currentSlide = index;
+  const track = document.getElementById('slides-track');
+  if (track) track.style.transform = `translateX(-${index * 25}%)`;
+  document.querySelectorAll('.swiper-dot').forEach((dot, i) => {
+    dot.classList.toggle('active', i === index);
+  });
+};
+
+let touchStartX = 0;
+function attachSwipeListeners() {
+  const container = document.getElementById('swiper-container');
+  if (!container) return;
+  container.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+  container.addEventListener('touchend', e => {
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 40) goToSlide(diff > 0 ? Math.min(currentSlide+1, TOTAL_SLIDES-1) : Math.max(currentSlide-1, 0));
+  });
+  container.addEventListener('mousedown', e => { touchStartX = e.clientX; });
+  container.addEventListener('mouseup', e => {
+    const diff = touchStartX - e.clientX;
+    if (Math.abs(diff) > 40) goToSlide(diff > 0 ? Math.min(currentSlide+1, TOTAL_SLIDES-1) : Math.max(currentSlide-1, 0));
+  });
+}
+
+/* Sync has-value class for floating label */
+window.syncFlatField = function(id) {
+  const input = document.getElementById(id);
+  const wrap  = document.getElementById(id + '-wrap');
+  if (!input || !wrap) return;
+  wrap.classList.toggle('has-value', input.value.length > 0);
+};
+
+window.toggleFlatPassword = function(id, btn) {
+  const input = document.getElementById(id);
+  if (!input) return;
+  input.type = input.type === 'password' ? 'text' : 'password';
+};
+
+window.doLogin = function() {
+  const email = document.getElementById('login-email')?.value;
+  if (!email || !email.includes('@')) { showToast('Please enter a valid email address', 'error'); return; }
+  showSpinner('Signing in…');
+  setTimeout(() => { hideSpinner(); window.location.href = 'dashboard.html'; }, 1500);
+};
+
+window.sendReset = function() {
+  const email = document.getElementById('forgot-email')?.value;
+  if (!email || !email.includes('@')) { showToast('Please enter a valid email address', 'error'); return; }
+  showToast('Reset link sent to ' + email, 'success');
+  setTimeout(() => goBack(), 2000);
+};
+
+/* ---- Init ---- */
+document.body.innerHTML = renderPhoneShell(renderMarketing(), '', { hideHomeIndicator: true });
+setTimeout(attachSwipeListeners, 100);
+</script>
+</body>
+</html>

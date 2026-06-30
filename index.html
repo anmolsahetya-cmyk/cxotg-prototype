@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pearl CX — Prototype Hub</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      background: #0f1d35;
+      color: #e8edf5;
+      min-height: 100vh;
+      padding: 40px 24px;
+    }
+    .hub-header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    .hub-logo {
+      font-size: 28px;
+      font-weight: 800;
+      color: white;
+      letter-spacing: -0.5px;
+    }
+    .hub-logo span { color: #1b87e6; }
+    .hub-subtitle {
+      font-size: 14px;
+      color: #8a9bb8;
+      margin-top: 8px;
+    }
+    .hub-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    .flow-card {
+      background: #1a2d4a;
+      border: 1px solid #2a3f6a;
+      border-radius: 12px;
+      padding: 20px;
+      text-decoration: none;
+      color: inherit;
+      transition: transform 150ms, background 150ms, border-color 150ms;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      cursor: pointer;
+    }
+    .flow-card:hover {
+      transform: translateY(-3px);
+      background: #1e3558;
+      border-color: #1b87e6;
+    }
+    .flow-emoji { font-size: 32px; }
+    .flow-title { font-size: 15px; font-weight: 700; color: white; }
+    .flow-desc  { font-size: 12px; color: #8a9bb8; line-height: 1.5; }
+    .flow-tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 600;
+      background: rgba(27,135,230,0.15);
+      color: #1b87e6;
+      align-self: flex-start;
+    }
+
+    .section-label {
+      max-width: 860px;
+      margin: 32px auto 12px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #5a7090;
+    }
+
+    .run-cmd {
+      max-width: 860px;
+      margin: 48px auto 0;
+      background: #0a1526;
+      border: 1px solid #1e3050;
+      border-radius: 8px;
+      padding: 16px 20px;
+    }
+    .run-cmd-label { font-size: 11px; color: #5a7090; font-weight: 600; margin-bottom: 8px; }
+    .run-cmd-code {
+      font-family: 'SF Mono', 'Consolas', monospace;
+      font-size: 13px;
+      color: #7fdbca;
+    }
+    .run-cmd-comment { color: #5a7090; }
+  </style>
+</head>
+<body>
+  <div class="hub-header">
+    <div class="hub-logo">Question<span>Pro</span> CX</div>
+    <div class="hub-subtitle">Interactive Prototype · UX Research Build</div>
+  </div>
+
+  <div class="section-label">Authentication</div>
+  <div class="hub-grid">
+    <a class="flow-card" href="marketing.html">
+      <div class="flow-emoji">👋</div>
+      <div class="flow-title">Onboarding + Login</div>
+      <div class="flow-desc">Marketing carousel, login form, forgot password</div>
+      <span class="flow-tag">Flow 1</span>
+    </a>
+  </div>
+
+  <div class="section-label">Main App</div>
+  <div class="hub-grid">
+    <a class="flow-card" href="dashboard.html">
+      <div class="flow-emoji">📊</div>
+      <div class="flow-title">Dashboard</div>
+      <div class="flow-desc">NPS/CSAT charts, ticket tiles, segment + date filters</div>
+      <span class="flow-tag">Flow 2</span>
+    </a>
+    <a class="flow-card" href="ticket-list.html">
+      <div class="flow-emoji">🎫</div>
+      <div class="flow-title">Ticket List</div>
+      <div class="flow-desc">Search, filter, paginate — 15 real dummy tickets</div>
+      <span class="flow-tag">Flow 3</span>
+    </a>
+    <a class="flow-card" href="ticket-detail.html">
+      <div class="flow-emoji">🔍</div>
+      <div class="flow-title">Ticket Detail</div>
+      <div class="flow-desc">4 tabs: Overview, Comments, Root Cause, Activity. Take Action sheet.</div>
+      <span class="flow-tag">Flow 4</span>
+    </a>
+  </div>
+
+  <div class="section-label">Actions</div>
+  <div class="hub-grid">
+    <a class="flow-card" href="create-ticket.html">
+      <div class="flow-emoji">➕</div>
+      <div class="flow-title">Create Ticket</div>
+      <div class="flow-desc">Full form with status, priority, assignee, segment pickers</div>
+      <span class="flow-tag">Flow 5</span>
+    </a>
+    <a class="flow-card" href="send-email.html">
+      <div class="flow-emoji">✉️</div>
+      <div class="flow-title">Send Email</div>
+      <div class="flow-desc">Composer with AI draft generation, templates, tone picker</div>
+      <span class="flow-tag">Flow 6</span>
+    </a>
+  </div>
+
+  <div class="section-label">Other</div>
+  <div class="hub-grid">
+    <a class="flow-card" href="notifications.html">
+      <div class="flow-emoji">🔔</div>
+      <div class="flow-title">Notifications</div>
+      <div class="flow-desc">Push notification list with read/unread states</div>
+      <span class="flow-tag">Flow 7</span>
+    </a>
+  </div>
+
+  <div class="run-cmd">
+    <div class="run-cmd-label">HOW TO RUN</div>
+    <div class="run-cmd-code">
+      npx serve .<br>
+      <span class="run-cmd-comment"># Open http://localhost:3000</span>
+    </div>
+  </div>
+</body>
+</html>

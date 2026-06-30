@@ -1,0 +1,12 @@
+{
+  "name": "pearl-cx-prototype",
+  "version": "1.0.0",
+  "description": "Browser-based interactive prototype of the Pearl CX React Native app",
+  "private": true,
+  "scripts": {
+    "start": "npx serve . -l 3030",
+    "serve": "npx serve ."
+  },
+  "keywords": ["prototype", "ux", "pearl-cx"],
+  "license": "UNLICENSED"
+}
