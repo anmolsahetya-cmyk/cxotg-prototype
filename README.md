@@ -1,4 +1,4 @@
-# Pearl CX — Interactive Prototype
+# CX On The Go — Interactive Prototype
 
 Browser-based interactive prototype of the Pearl CX React Native app. Built for UX research — CX managers navigate real flows inside a 390×844px phone frame.
 
