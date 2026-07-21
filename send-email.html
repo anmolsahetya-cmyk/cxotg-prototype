@@ -369,7 +369,7 @@ function reRender(focusBody) {
   const bodyEl = document.getElementById('se-body');
   if (subjEl) emailState.subject = subjEl.value;
   if (bodyEl)  emailState.body   = bodyEl.value;
-  document.body.innerHTML = renderPhoneShell(renderSendEmail(), 'closedloop');
+  document.body.innerHTML = renderPhoneShell(renderSendEmail());
   if (focusBody) requestAnimationFrame(() => document.getElementById('se-body')?.focus());
 }
 
@@ -415,7 +415,7 @@ window.applyTemplate = function(id) {
   }
   closeTplSheet();
   // Re-render compose screen with updated body (subject stays as-is)
-  document.body.innerHTML = renderPhoneShell(renderSendEmail(), 'closedloop');
+  document.body.innerHTML = renderPhoneShell(renderSendEmail());
 };
 
 /* ---- AI Draft sheet ---- */
@@ -523,7 +523,7 @@ window.insertAIDraft = function() {
   emailState.subject = DATA.aiEmailDraft.subject;
   emailState.body    = DATA.aiEmailDraft.body;
   closeAISheet();
-  document.body.innerHTML = renderPhoneShell(renderSendEmail(), 'closedloop');
+  document.body.innerHTML = renderPhoneShell(renderSendEmail());
 };
 
 /* ---- Refine sub-sheet ---- */
@@ -698,7 +698,7 @@ window.doSend = function() {
 };
 
 /* ---- Init ---- */
-document.body.innerHTML = renderPhoneShell(renderSendEmail(), 'closedloop');
+document.body.innerHTML = renderPhoneShell(renderSendEmail());
 </script>
 </body>
 </html>

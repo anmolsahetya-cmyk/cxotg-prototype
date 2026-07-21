@@ -22,11 +22,20 @@ function navigate(screenFn, params = {}) {
 
 /* ----- Navigate back ----- */
 function goBack() {
-  if (!NAV.history.length) return;
-  const prev = NAV.history.pop();
-  NAV.currentScreen = prev.fn;
-  NAV.currentParams = prev.params;
-  _renderWithTransition(prev.fn, prev.params, 'back');
+  if (NAV.history.length) {
+    const prev = NAV.history.pop();
+    NAV.currentScreen = prev.fn;
+    NAV.currentParams = prev.params;
+    _renderWithTransition(prev.fn, prev.params, 'back');
+    return;
+  }
+  // Each screen is its own page load, so there's usually no in-page
+  // history — fall back to the browser history, then Dashboard.
+  if (window.history.length > 1) {
+    window.history.back();
+  } else {
+    window.location.href = 'dashboard.html';
+  }
 }
 
 function _renderWithTransition(screenFn, params, direction) {
@@ -55,9 +64,12 @@ function _renderWithTransition(screenFn, params, direction) {
 }
 
 /* ----- Phone shell ----- */
-function renderPhoneShell(screenHTML, activeDrawerItem = '', opts = {}) {
+const _BOTTOM_NAV_TABS = ['dashboard', 'closedloop', 'account'];
+
+function renderPhoneShell(screenHTML, activeTab = '', opts = {}) {
   const showStatusBar = opts.hideStatusBar !== true;
   const showHomeIndicator = opts.hideHomeIndicator !== true;
+  const showBottomNav = opts.hideBottomNav !== true && _BOTTOM_NAV_TABS.includes(activeTab);
   return `
     <div class="device-shell">
       ${showStatusBar ? `
@@ -83,83 +95,49 @@ function renderPhoneShell(screenHTML, activeDrawerItem = '', opts = {}) {
           ${screenHTML}
         </div>
       </div>
+      ${showBottomNav ? renderBottomNav(activeTab) : ''}
       ${showHomeIndicator ? '<div class="home-indicator"></div>' : ''}
-      ${renderDrawer(activeDrawerItem)}
     </div>
   `;
 }
 
-/* ----- Drawer ----- */
-const _DRAWER_DASHBOARD_ICON = `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-  <rect x="3" y="3" width="8" height="8" rx="1.5"/>
-  <rect x="13" y="3" width="8" height="8" rx="1.5"/>
-  <rect x="3" y="13" width="8" height="8" rx="1.5"/>
-  <rect x="13" y="13" width="8" height="8" rx="1.5"/>
+/* ----- Bottom navigation ----- */
+const _NAV_DASHBOARD_ICON = `<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <rect x="3" y="3" width="8" height="8" rx="2"/>
+  <rect x="13" y="3" width="8" height="8" rx="2"/>
+  <rect x="3" y="13" width="8" height="8" rx="2"/>
+  <rect x="13" y="13" width="8" height="8" rx="2"/>
 </svg>`;
 
-const _DRAWER_CLOSEDLOOP_ICON = `<svg width="24" height="24" viewBox="0 0 16 17" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+const _NAV_CLOSEDLOOP_ICON = `<svg width="22" height="22" viewBox="0 0 16 17" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
   <path fill-rule="evenodd" clip-rule="evenodd" d="M8.00003 6.30622C7.00434 6.30622 6.19718 7.11339 6.19718 8.10908C6.19718 8.54287 6.34995 8.93988 6.6046 9.24995L6.84339 9.5407L6.53003 9.74892C5.90146 10.1666 5.46139 10.8433 5.36155 11.6262H10.6385C10.5387 10.8433 10.0986 10.1668 9.4702 9.74986L9.15678 9.54191L9.39521 9.25101C9.65016 8.93996 9.80289 8.54281 9.80289 8.10908C9.80289 7.11339 8.99572 6.30622 8.00003 6.30622ZM5.51718 8.10908C5.51718 6.73783 6.62879 5.62622 8.00003 5.62622C9.37128 5.62622 10.4829 6.73783 10.4829 8.10908C10.4829 8.57792 10.3527 9.0169 10.1266 9.3912C10.8673 10.0029 11.34 10.9294 11.34 11.9662V12.3062H4.66003V11.9662C4.66003 10.9293 5.13278 10.0029 5.87337 9.39069C5.64731 9.01671 5.51718 8.57775 5.51718 8.10908Z"/>
   <path fill-rule="evenodd" clip-rule="evenodd" d="M9.58179 3.88667C8.23465 3.46715 6.77603 3.59997 5.52681 4.2559C4.2776 4.91183 3.34012 6.03715 2.9206 7.38429C2.50109 8.73143 2.63391 10.1901 3.28984 11.4393C3.94577 12.6885 5.07108 13.626 6.41822 14.0455C7.76537 14.465 9.22399 14.3322 10.4732 13.6762C11.7224 13.0203 12.6599 11.895 13.0794 10.5479C13.4989 9.20071 13.3661 7.7421 12.7102 6.49288C12.0542 5.24366 10.9289 4.30618 9.58179 3.88667ZM5.21069 3.65385C6.61958 2.91408 8.26464 2.76428 9.78397 3.23742C11.3033 3.71056 12.5725 4.76787 13.3122 6.17676C14.052 7.58565 14.2018 9.23071 13.7287 10.75C13.2555 12.2694 12.1982 13.5385 10.7893 14.2783C9.38043 15.0181 7.73538 15.1679 6.21604 14.6947C4.69671 14.2216 3.42756 13.1643 2.68778 11.7554C1.94801 10.3465 1.79822 8.70144 2.27136 7.18211C2.74449 5.66277 3.8018 4.39362 5.21069 3.65385Z"/>
   <path fill-rule="evenodd" clip-rule="evenodd" d="M8.4201 1.65813C6.93434 1.57272 5.45785 1.94221 4.18744 2.71733C2.91702 3.49245 1.91305 4.63639 1.30935 5.99665C0.705641 7.3569 0.530888 8.86886 0.808382 10.331C1.08588 11.7931 1.80243 13.1359 2.86253 14.1804C3.92264 15.2248 5.27592 15.9214 6.74198 16.1772C8.20805 16.4329 9.71724 16.2357 11.0684 15.6119C12.4195 14.9881 13.5485 13.9673 14.3046 12.6855C15.0608 11.4037 15.4083 9.92189 15.3009 8.43757C15.2873 8.25028 15.4282 8.08746 15.6155 8.07391C15.8028 8.06035 15.9656 8.20118 15.9791 8.38847C16.0966 10.0107 15.7167 11.6302 14.8903 13.031C14.0639 14.4318 12.8301 15.5475 11.3534 16.2293C9.87677 16.9111 8.22737 17.1266 6.62512 16.847C5.02286 16.5675 3.54386 15.8063 2.38528 14.6647C1.2267 13.5232 0.44358 12.0557 0.140308 10.4578C-0.162965 8.85983 0.0280221 7.20742 0.687808 5.7208C1.34759 4.23418 2.44483 2.98397 3.83326 2.13685C5.22169 1.28972 6.83535 0.885911 8.45912 0.979253C8.64659 0.99003 8.78983 1.15074 8.77905 1.33821C8.76827 1.52567 8.60757 1.66891 8.4201 1.65813Z"/>
   <path d="M13.5 4.71606C13.5 5.68256 12.7165 6.46606 11.75 6.46606C10.7835 6.46606 10 5.68256 10 4.71606C10 3.74957 10.7835 2.96606 11.75 2.96606C12.7165 2.96606 13.5 3.74957 13.5 4.71606Z"/>
 </svg>`;
 
-const _DRAWER_LOGOUT_ICON = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-  <polyline points="16 17 21 12 16 7"/>
-  <line x1="21" y1="12" x2="9" y2="12"/>
+const _NAV_ACCOUNT_ICON = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="12" cy="8" r="4"/>
+  <path d="M4 20c0-4.2 3.6-7.2 8-7.2s8 3 8 7.2"/>
 </svg>`;
 
-function renderDrawer(activeItem = '') {
+function renderBottomNav(activeItem = '') {
   const navItems = [
-    { key: 'dashboard',  label: 'Dashboard',  href: 'dashboard.html',   icon: _DRAWER_DASHBOARD_ICON },
-    { key: 'closedloop', label: 'Closedloop',  href: 'ticket-list.html', icon: _DRAWER_CLOSEDLOOP_ICON },
+    { key: 'dashboard',  label: 'Dashboard',  href: 'dashboard.html',   icon: _NAV_DASHBOARD_ICON },
+    { key: 'closedloop', label: 'Closedloop', href: 'ticket-list.html', icon: _NAV_CLOSEDLOOP_ICON },
+    { key: 'account',    label: 'Account',    href: 'account.html',    icon: _NAV_ACCOUNT_ICON },
   ];
 
   return `
-    <div class="drawer-overlay" id="drawer-overlay">
-      <div class="drawer-backdrop" onclick="closeDrawer()"></div>
-      <div class="drawer-panel">
-
-        <!-- Logo -->
-        <div class="drawer-logo-area">
-          <img src="assets/questionpro_banner.svg" alt="QuestionPro"/>
-        </div>
-
-        <!-- Nav items: Dashboard + Closedloop only (Settings commented out in source) -->
-        <nav class="drawer-nav">
-          ${navItems.map(item => `
-            <a class="drawer-nav-item${activeItem === item.key ? ' active' : ''}" href="${item.href}" onclick="closeDrawer()">
-              <span class="drawer-nav-icon">${item.icon}</span>
-              <span class="drawer-nav-label">${item.label}</span>
-            </a>
-          `).join('')}
-        </nav>
-
-        <!-- Footer: workspace info + logout (RenderSettingsAndLogout) -->
-        <div class="drawer-footer">
-          <div class="drawer-footer-sep"></div>
-          <div class="drawer-workspace-name">${DATA.user.org}</div>
-          <div class="drawer-workspace-info">${DATA.user.name}</div>
-          <div class="drawer-workspace-info">${DATA.user.email}</div>
-          <a class="drawer-nav-item" href="marketing.html" style="margin-top:17.5px;">
-            <span class="drawer-nav-icon">${_DRAWER_LOGOUT_ICON}</span>
-            <span class="drawer-nav-label">Logout</span>
-          </a>
-        </div>
-
-      </div>
-    </div>
+    <nav class="bottom-nav">
+      ${navItems.map(item => `
+        <a class="bottom-nav-item${activeItem === item.key ? ' active' : ''}" href="${item.href}">
+          <span class="bottom-nav-icon-bg"><span class="bottom-nav-icon">${item.icon}</span></span>
+          <span class="bottom-nav-label">${item.label}</span>
+        </a>
+      `).join('')}
+    </nav>
   `;
-}
-
-function openDrawer() {
-  const el = document.getElementById('drawer-overlay');
-  if (el) el.classList.add('open');
-}
-function closeDrawer() {
-  const el = document.getElementById('drawer-overlay');
-  if (el) el.classList.remove('open');
 }
 
 /* ----- Bottom sheet system ----- */
@@ -311,13 +289,22 @@ function renderCSATBar(csat) {
   `;
 }
 
+/* ----- Segment selector pill (Dashboard / Closedloop app bars) ----- */
+function renderSegmentSelector(label, id, onclick) {
+  return `
+    <button class="seg-lean" onclick="${onclick}">
+      <span class="seg-lean-value" id="${id}">${label}</span>
+      <svg width="10" height="7" viewBox="0 0 12 8" fill="none" style="flex-shrink:0;"><path d="M1 1L6 6.5L11 1" stroke="#1B3380" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  `;
+}
+
 /* ----- Shared header component ----- */
-function renderHeader({ title, showBack = false, showMenu = false, right = '', activeDrawer = '' }) {
+function renderHeader({ title, showBack = false, right = '' }) {
   return `
     <div class="nav-header">
       <div class="nav-header-left">
         ${showBack ? `<button class="icon-btn" onclick="goBack()">${renderIcon('back')}</button>` : ''}
-        ${showMenu ? `<button class="icon-btn" onclick="openDrawer()">${renderIcon('menu')}</button>` : ''}
       </div>
       <span class="nav-header-title">${title}</span>
       <div class="nav-header-right">${right}</div>

@@ -150,13 +150,13 @@ function renderCreateTicket() {
     <div class="screen-content" style="background:#F5F5F5;">
 
       <!-- Header -->
-      <div style="background:#1B3380;display:flex;align-items:center;padding:14px 16px;gap:12px;flex-shrink:0;">
-        <a href="ticket-list.html" style="display:flex;align-items:center;color:#fff;text-decoration:none;">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <div style="background:#fff;border-bottom:1px solid #d8d8d8;display:flex;align-items:center;padding:14px 16px;gap:12px;flex-shrink:0;">
+        <a href="ticket-list.html" style="display:flex;align-items:center;color:#404A5B;text-decoration:none;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#404A5B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="15,18 9,12 15,6"/>
           </svg>
         </a>
-        <span style="flex:1;text-align:center;font-size:20px;font-weight:700;color:#fff;font-family:var(--font);">New ticket</span>
+        <span style="flex:1;text-align:center;font-size:20px;font-weight:700;color:#404A5B;font-family:var(--font);">New ticket</span>
         <div style="width:24px;"></div>
       </div>
 
@@ -460,7 +460,7 @@ window.handleCreateTicket = function() {
 /* ============================================================
    Init
    ============================================================ */
-document.body.innerHTML = renderPhoneShell(renderCreateTicket(), 'closedloop');
+document.body.innerHTML = renderPhoneShell(renderCreateTicket());
 
 </script>
 </body>

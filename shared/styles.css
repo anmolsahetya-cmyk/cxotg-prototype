@@ -244,7 +244,7 @@ body {
 
 .nav-header-title {
   font-size: var(--text-md);
-  font-weight: 600;
+  font-weight: 400;
   color: var(--text);
   flex: 1;
   text-align: center;
@@ -818,137 +818,81 @@ textarea.input-field {
 }
 .comment-input:focus { border-color: var(--accent); background: white; }
 
-/* ----- Drawer ----- */
-/* ----- Drawer ------------------------------------------------ */
-/*
-  Source: DrawerContent.js + DrawerContentUI.js + DrawerBackground.js
-    drawerBackground  = #EEF3FB
-    logoContainer.paddingHorizontal = tab1 = 7.5px
-    logo width  = containerWidth * 0.9, height = containerWidth * 0.2
-    drawerRow.marginTop = tab2 = 17.5px
-    rowIcon.margin      = tab1 = 7.5px (all sides)
-    icon size           = 1.3 × Sizes.icons = 1.3 × 18 ≈ 24px
-    activeDrawerRow.backgroundColor = white, borderRadius 8, paddingVertical 3.75px
-    labelStyle: FiraSans-Regular 18px #1B3380, paddingLeft 7.5px
-    activeLabelStyle: color #1b87e6
-    footer: drawerVersionContainer flex:1 justifyContent:flex-end marginBottom:37.5px (iOS tab4)
-    workspaceName: FiraSans-Medium 18px #1B3380 paddingLeft 7.5px marginVertical 3.75px marginHorizontal 7.5px
-    userInfo: FiraSans-Regular 15px #1B3380 paddingLeft 7.5px marginVertical 3.75px marginHorizontal 7.5px
-    separator: ListItemSeparator height=1px
-*/
-
-.drawer-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 200;
-  pointer-events: none;
-}
-.drawer-overlay.open { pointer-events: all; }
-
-.drawer-backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(0,0,0,0.4);
-  opacity: 0;
-  transition: opacity 250ms;
-}
-.drawer-overlay.open .drawer-backdrop { opacity: 1; }
-
-.drawer-panel {
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  width: 273px; /* ~70% of 390px, matches React Nav default */
+/* ----- Segment selector pill (Dashboard / Closedloop app bars) ----- */
+.seg-lean {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   background: #EEF3FB;
-  transform: translateX(-100%);
-  transition: transform 280ms cubic-bezier(0.25,0.46,0.45,0.94);
+  border: none;
+  border-radius: 20px;
+  padding: 7px 12px;
+  cursor: pointer;
+  font-family: var(--font);
+  flex: 1;
+  min-width: 0;
+}
+.seg-lean-value {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  color: #1B3380;
+  font-weight: 600;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ----- Bottom navigation ----- */
+.bottom-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 4px;
+  background: var(--bg-card);
+  border-top: 1px solid var(--divider);
+  padding: 8px 10px 10px;
+  flex-shrink: 0;
+}
+.bottom-nav-item {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-}
-.drawer-overlay.open .drawer-panel { transform: translateX(0); }
-
-/* Logo area at top */
-.drawer-logo-area {
-  padding: 20px 7.5px 4px;
-  display: flex;
   align-items: center;
-  justify-content: flex-start;
-}
-.drawer-logo-area img {
-  /* containerWidth = 273-15 = 258px → width=258*0.9=232px, height=258*0.2=52px */
-  width: 178px;
-  height: 36px;
-  object-fit: contain;
-}
-
-/* Nav items */
-.drawer-nav {
-  flex: 1;
-  padding: 0 8px;
-  overflow: hidden;
-}
-.drawer-nav-item {
-  display: flex;
-  align-items: center;
-  margin-top: 17.5px; /* tab2 */
-  border-radius: 8px;
+  justify-content: center;
+  gap: 3px;
+  padding: 4px 4px 2px;
+  border-radius: var(--radius-lg);
   text-decoration: none;
   cursor: pointer;
-  color: #1B3380;
+  color: var(--text-light);
+  transition: background 150ms, color 150ms;
 }
-.drawer-nav-item.active {
-  background: #ffffff;
-  padding-top: 3.75px;   /* halfTab */
-  padding-bottom: 3.75px;
-}
-.drawer-nav-icon {
-  margin: 7.5px;   /* tab1 all sides */
-  width: 24px;
-  height: 24px;
+.bottom-nav-item:active { background: var(--bg-selection); }
+.bottom-nav-icon-bg {
+  width: 52px;
+  height: 30px;
+  border-radius: var(--radius-pill);
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  color: #1B3380;
+  transition: background 200ms;
 }
-.drawer-nav-item.active .drawer-nav-icon { color: #1b87e6; }
-
-.drawer-nav-label {
-  font-size: 18px;   /* TextSizes.primary */
-  font-weight: 400;
-  color: #1B3380;
-  padding-left: 7.5px; /* tab1 */
-}
-.drawer-nav-item.active .drawer-nav-label { color: #1b87e6; }
-
-/* Footer: pinned to bottom */
-.drawer-footer {
+.bottom-nav-item.active .bottom-nav-icon-bg { background: var(--accent-bg); }
+.bottom-nav-icon {
+  width: 22px;
+  height: 22px;
   display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: 0 8px 37.5px; /* marginBottom=tab4=37.5px (iOS) */
+  align-items: center;
+  justify-content: center;
 }
-.drawer-footer-sep {
-  height: 1px;
-  background: #E4E4E4;
-  margin: 0 4px 15px; /* tab1_2x spacer below */
+.bottom-nav-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1px;
 }
-.drawer-workspace-name {
-  font-size: 18px;  /* TextSizes.primary */
-  font-weight: 500; /* FiraSans-Medium */
-  color: #1B3380;
-  padding-left: 7.5px;
-  margin: 3.75px 7.5px; /* halfTab vertical, tab1 horizontal */
-}
-.drawer-workspace-info {
-  font-size: 15px;  /* TextSizes.secondary */
-  font-weight: 400; /* FiraSans-Regular */
-  color: #1B3380;
-  padding-left: 7.5px;
-  margin: 3.75px 7.5px;
-}
+.bottom-nav-item.active { color: var(--accent); }
 
 /* ----- Notification dot ----- */
 .notif-dot {

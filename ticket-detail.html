@@ -126,15 +126,15 @@ function renderDetail() {
   ];
   return `
     <div class="screen-content">
-      <!-- Dark navy header -->
-      <div style="background:#1B3380;display:flex;align-items:center;padding:0 16px;height:56px;flex-shrink:0;">
+      <!-- White header -->
+      <div style="background:#fff;border-bottom:1px solid #d8d8d8;display:flex;align-items:center;padding:0 16px;height:56px;flex-shrink:0;">
         <button onclick="window.history.length>1?window.history.back():window.location.href='ticket-list.html'"
-          style="background:none;border:none;cursor:pointer;color:#fff;display:flex;align-items:center;padding:4px;margin-right:8px;">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+          style="background:none;border:none;cursor:pointer;color:#404A5B;display:flex;align-items:center;padding:4px;margin-right:8px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#404A5B" stroke-width="2.5" stroke-linecap="round">
             <polyline points="15 18 9 12 15 6"/>
           </svg>
         </button>
-        <span style="flex:1;text-align:center;font-size:18px;font-weight:700;color:#fff;font-family:var(--font);">Ticket #${ticket.id.replace('TKT-','')}</span>
+        <span style="flex:1;text-align:center;font-size:18px;font-weight:700;color:#404A5B;font-family:var(--font);">Ticket #${ticket.id.replace('TKT-','')}</span>
         <div style="width:30px;"></div>
       </div>
 
@@ -166,7 +166,7 @@ function renderDetail() {
    ============================================================ */
 window.switchTab = function(tab) {
   activeTab = tab;
-  document.body.innerHTML = renderPhoneShell(renderDetail(), 'closedloop');
+  document.body.innerHTML = renderPhoneShell(renderDetail());
 };
 
 function getTabContent() {
@@ -800,14 +800,14 @@ function renderCRCScreen() {
   return `
     <div class="screen-content">
       <!-- Header -->
-      <div style="background:#1B3380;display:flex;align-items:center;padding:0 16px;height:56px;flex-shrink:0;">
+      <div style="background:#fff;border-bottom:1px solid #d8d8d8;display:flex;align-items:center;padding:0 16px;height:56px;flex-shrink:0;">
         <button onclick="closeCRC()"
-          style="background:none;border:none;cursor:pointer;color:#fff;display:flex;align-items:center;padding:4px;margin-right:8px;">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+          style="background:none;border:none;cursor:pointer;color:#404A5B;display:flex;align-items:center;padding:4px;margin-right:8px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#404A5B" stroke-width="2.5" stroke-linecap="round">
             <polyline points="15 18 9 12 15 6"/>
           </svg>
         </button>
-        <span style="flex:1;text-align:center;font-size:18px;font-weight:700;color:#fff;font-family:var(--font);">Centralized Root Cause</span>
+        <span style="flex:1;text-align:center;font-size:18px;font-weight:700;color:#404A5B;font-family:var(--font);">Centralized Root Cause</span>
         <div style="width:30px;"></div>
       </div>
 
@@ -844,33 +844,33 @@ function renderCRCScreen() {
 
 window.openCRC = function() {
   _screen = 'crc';
-  document.body.innerHTML = renderPhoneShell(renderCRCScreen(), 'closedloop');
+  document.body.innerHTML = renderPhoneShell(renderCRCScreen());
 };
 
 window.closeCRC = function() {
   _screen = 'detail';
-  document.body.innerHTML = renderPhoneShell(renderDetail(), 'closedloop');
+  document.body.innerHTML = renderPhoneShell(renderDetail());
 };
 
 window.crcToggleSection = function(id) {
   if (_crcExpanded.has(id)) _crcExpanded.delete(id); else _crcExpanded.add(id);
-  document.body.innerHTML = renderPhoneShell(renderCRCScreen(), 'closedloop');
+  document.body.innerHTML = renderPhoneShell(renderCRCScreen());
 };
 
 window.crcToggleItem = function(id) {
   if (_crcSelected.has(id)) _crcSelected.delete(id); else _crcSelected.add(id);
-  document.body.innerHTML = renderPhoneShell(renderCRCScreen(), 'closedloop');
+  document.body.innerHTML = renderPhoneShell(renderCRCScreen());
 };
 
 window.crcToggleSubItem = function(id) {
   if (_crcSelected.has(id)) _crcSelected.delete(id); else _crcSelected.add(id);
-  document.body.innerHTML = renderPhoneShell(renderCRCScreen(), 'closedloop');
+  document.body.innerHTML = renderPhoneShell(renderCRCScreen());
 };
 
 window.crcToggleOther = function() {
   _otherChecked = !_otherChecked;
   if (!_otherChecked) _otherText = '';
-  document.body.innerHTML = renderPhoneShell(renderCRCScreen(), 'closedloop');
+  document.body.innerHTML = renderPhoneShell(renderCRCScreen());
 };
 
 window.submitCRC = function() {
@@ -899,13 +899,13 @@ window.submitCRC = function() {
   showToast('Root cause updated', 'success');
   _screen = 'detail';
   activeTab = 'rootcause';
-  document.body.innerHTML = renderPhoneShell(renderDetail(), 'closedloop');
+  document.body.innerHTML = renderPhoneShell(renderDetail());
 };
 
 /* ============================================================
    Init
    ============================================================ */
-document.body.innerHTML = renderPhoneShell(renderDetail(), 'closedloop');
+document.body.innerHTML = renderPhoneShell(renderDetail());
 
 </script>
 </body>

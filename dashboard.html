@@ -9,7 +9,8 @@
     /* ── Header ─────────────────────────────── */
     .dash-header {
       flex-shrink: 0;
-      background: #1B3380;
+      background: #fff;
+      border-bottom: 1px solid #E4E4E4;
     }
     .dash-header-nav {
       display: flex;
@@ -18,28 +19,18 @@
       gap: 8px;
       min-height: 56px;
     }
-    .dash-hamburger {
-      background: none;
-      border: none;
-      padding: 4px;
-      cursor: pointer;
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
     .dash-title-block {
       flex: 1;
       display: flex;
       flex-direction: column;
       gap: 1px;
-      cursor: pointer;
       min-width: 0;
+      padding-left: 4px;
     }
     .dash-title {
       font-size: 20px;
-      font-weight: 600;
-      color: #fff;
+      font-weight: 400;
+      color: #1B3380;
       line-height: 1.2;
     }
     .dash-subtitle-row {
@@ -87,23 +78,43 @@
       background: #fff;
       padding: 9px 17.5px;
       display: flex;
-      align-items: center;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
       border-top: 1px solid rgba(0,0,0,0.08);
     }
-    .date-pill {
+    .seg-pill {
       display: flex;
       align-items: center;
-      gap: 6px;
-      border: 1px solid #9B9B9B;
-      border-radius: 8px;
-      padding: 6px 12px;
+      gap: 12px;
+      border: 1px solid #E4E4E4;
+      border-radius: 14px;
+      padding: 12px 14px;
       background: #fff;
       cursor: pointer;
-      font-size: 13px;
-      color: #545E6B;
       font-family: var(--font);
+      width: 100%;
+      min-width: 0;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
     }
-    .date-pill:active { background: #F3F5F8; }
+    .seg-pill-text { flex: 1; min-width: 0; text-align: left; }
+    .seg-pill-eyebrow { font-size: 11.5px; color: #909090; }
+    .seg-pill-value { font-size: 15px; color: #404A5B; font-weight: 600; margin-top: 1px; }
+    .seg-pill:active { background: #F3F5F8; }
+    .date-txt-btn {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+      border: none;
+      background: none;
+      padding: 4px 0;
+      cursor: pointer;
+      font-size: 13px;
+      color: #1b87e6;
+      font-family: var(--font);
+      width: 100%;
+    }
 
     /* ── Scroll body ─────────────────────────── */
     .dash-body {
@@ -121,11 +132,54 @@
       border: 1px solid rgba(0,0,0,0.13);
       overflow: hidden;
     }
-    .nps-card {
-      margin: 17.5px 17.5px 0;
+    .dash-carousel {
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      padding: 17.5px 0 0;
     }
-    .cl-card {
-      margin: 16px 16px 0;
+    .dash-carousel::-webkit-scrollbar { display: none; }
+    .dash-carousel-item {
+      flex: 0 0 100%;
+      scroll-snap-align: start;
+      min-width: 0;
+      box-sizing: border-box;
+      padding: 0 17.5px;
+    }
+    .nps-card, .cl-card {
+      margin: 0;
+    }
+    .dash-dots {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      padding: 12px 0 0;
+    }
+    .dash-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 3px;
+      background: #C9CFDA;
+      transition: background 150ms, width 150ms;
+    }
+    .dash-dot.active {
+      background: #1B3380;
+      width: 16px;
+    }
+
+    /* ── Quick Action ─────────────────────── */
+    .qa-title {
+      padding: 20px 17.5px 4px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #1B3380;
+    }
+    .qa-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 8px 17.5px 4px;
     }
 
     /* Card title row */
@@ -393,6 +447,98 @@ function renderClosedloopDonut(cl) {
   `;
 }
 
+/* ── Ticket card (matches Closedloop) ────── */
+const _PRI_COLORS = ['#42BD84', '#F6C140', '#E4632D', '#DA2222'];
+const _PRI_LABELS = ['Low', 'Medium', 'High', 'Critical'];
+const _STA_STYLE  = [
+  'border:1px dotted #545E6B;color:#545E6B;background:transparent;',
+  'background:#40CA5A;color:#fff;border:none;',
+  'background:#FF9145;color:#fff;border:none;',
+  'background:#1b87e6;color:#fff;border:none;',
+];
+const _STA_LABELS = ['New', 'Open', 'Escalated', 'Resolved'];
+const _QA_TAB_STATUS_ORDER = [2, 0, 1, 3]; // Escalated, New, Open, Resolved
+
+function _shortDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function _priFlag(color) {
+  return `<svg width="14" height="14" viewBox="0 0 24 24" fill="${color}">
+    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+    <line x1="4" y1="22" x2="4" y2="15" stroke="${color}" stroke-width="2" stroke-linecap="round"/>
+  </svg>`;
+}
+
+function renderTicketCard(ticket, onclick) {
+  const pri = _PRI_COLORS[ticket.priorityId] || '#42BD84';
+  const priLabel = _PRI_LABELS[ticket.priorityId] || 'Low';
+  const staStyle = _STA_STYLE[ticket.statusId] || _STA_STYLE[0];
+  const staLabel = _STA_LABELS[ticket.statusId] || 'New';
+  const assignee = DATA.managers.find(m => m.id === ticket.assigneeId);
+  const dateStr  = _shortDate(ticket.issueDate);
+  const desc = (ticket.description || ticket.title || '');
+
+  const datePillStyle = ticket.isOverdue
+    ? 'background:#F85271;color:#fff;border:none;'
+    : 'background:#EEF3FB;color:#545E6B;border:none;';
+
+  const dateIconSVG = ticket.isOverdue
+    ? `<svg width="13" height="13" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="white"/><rect x="11" y="7" width="2" height="6" rx="1" fill="#F85271"/><rect x="11" y="15" width="2" height="2" rx="1" fill="#F85271"/></svg>`
+    : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#545E6B" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
+
+  return `
+    <div onclick="${onclick}"
+      style="background:#fff;border:1px solid #e2e4e8;border-radius:8px;padding:16px;cursor:pointer;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;gap:5px;min-width:0;flex:1;margin-right:8px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9B9B9B" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          <span style="font-size:14px;color:#9B9B9B;font-family:var(--font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${ticket.email}</span>
+        </div>
+        <span style="font-size:14px;color:#1b87e6;font-weight:600;font-family:var(--font);flex-shrink:0;">${ticket.id}</span>
+      </div>
+      <div style="font-size:16px;color:#404A5B;font-family:var(--font);line-height:1.45;margin-bottom:12px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">
+        ${desc}
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:nowrap;overflow:hidden;">
+        ${assignee ? `<div style="width:28px;height:28px;border-radius:14px;background:${assignee.avatarColor};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;font-family:var(--font);flex-shrink:0;">${assignee.initials}</div>` : ''}
+        <div style="display:flex;align-items:center;gap:4px;${datePillStyle}border-radius:20px;padding:5px 10px;flex-shrink:0;font-size:13px;font-family:var(--font);font-weight:500;">
+          ${dateIconSVG}
+          <span>${dateStr}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+          ${_priFlag(pri)}
+          <span style="font-size:13px;color:#545E6B;font-family:var(--font);">${priLabel}</span>
+        </div>
+        <div style="${staStyle}border-radius:20px;padding:5px 10px;font-size:13px;font-family:var(--font);font-weight:500;flex-shrink:0;white-space:nowrap;">
+          ${staLabel}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function _quickActionTickets() {
+  let ordered = [];
+  _QA_TAB_STATUS_ORDER.forEach(statusId => {
+    ordered = ordered.concat(DATA.tickets.filter(t => t.statusId === statusId));
+  });
+  const count = getQaCount();
+  return ordered.slice(0, count);
+}
+
+function getQaCount() {
+  const v = parseInt(localStorage.getItem('qaCount'), 10);
+  return (v >= 1 && v <= 10) ? v : 5;
+}
+
+window.openTicket = function(id) {
+  localStorage.setItem('selectedTicketId', id);
+  window.location.href = 'ticket-detail.html';
+};
+
 /* ── Main render ──────────────────────────── */
 function renderDashboard() {
   const nps = DATA.nps;
@@ -401,30 +547,14 @@ function renderDashboard() {
   return `
     <div class="screen-content">
 
-      <!-- Dark navy header -->
+      <!-- App bar -->
       <div class="dash-header">
         <div class="dash-header-nav">
-          <button class="dash-hamburger" onclick="openDrawer()">
-            <svg width="22" height="16" viewBox="0 0 22 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect y="0"  width="22" height="2.2" rx="1.1" fill="white"/>
-              <rect y="7"  width="22" height="2.2" rx="1.1" fill="white"/>
-              <rect y="14" width="22" height="2.2" rx="1.1" fill="white"/>
-            </svg>
-          </button>
-
-          <div class="dash-title-block" onclick="openSegmentSheet(dashState.segment, onSegmentSelect)">
-            <span class="dash-title">Dashboard</span>
-            <div class="dash-subtitle-row">
-              <span class="dash-subtitle" id="dash-segment-label">${dashState.segment}</span>
-              <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M1 1L6 6.5L11 1" stroke="rgba(255,255,255,0.75)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </div>
-          </div>
+          ${renderSegmentSelector(dashState.segment, 'dash-segment-label', "openSegmentSheet(dashState.segment, onSegmentSelect)")}
 
           <button class="dash-bell-btn" onclick="window.location.href='notifications.html'">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" fill="white"/>
+              <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" fill="#1B3380"/>
             </svg>
             <span class="dash-bell-badge">${DATA.notificationCount}</span>
           </button>
@@ -432,10 +562,10 @@ function renderDashboard() {
 
         <!-- Date filter bar -->
         <div class="dash-date-bar">
-          <button class="date-pill" onclick="openDateSheet()">
+          <button class="date-txt-btn" onclick="openDateSheet()">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="3" y="4" width="18" height="17" rx="2" stroke="#545E6B" stroke-width="2"/>
-              <path d="M3 9h18M8 2v4M16 2v4" stroke="#545E6B" stroke-width="2" stroke-linecap="round"/>
+              <rect x="3" y="4" width="18" height="17" rx="2" stroke="#1b87e6" stroke-width="2"/>
+              <path d="M3 9h18M8 2v4M16 2v4" stroke="#1b87e6" stroke-width="2" stroke-linecap="round"/>
             </svg>
             <span id="dash-date-label">${dashState.dateRange}</span>
           </button>
@@ -445,7 +575,58 @@ function renderDashboard() {
       <!-- Scrollable body -->
       <div class="dash-body" id="dash-body">
 
-        <!-- NPS Card -->
+        <!-- Swipeable NPS / Closedloop cards -->
+        <div class="dash-carousel" id="dash-carousel" onscroll="onCarouselScroll()">
+        <div class="dash-carousel-item">
+        <!-- Closedloop Card -->
+        <div class="dash-card cl-card">
+          <div class="card-title-row">
+            <span class="card-title-text">Closedloop</span>
+            <a class="card-title-link" href="ticket-list.html">Tickets</a>
+            <div class="card-title-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 6h16M7 12h10M10 18h4" stroke="#545E6B" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+          </div>
+          <div class="card-separator"></div>
+
+          <!-- Donut -->
+          <div class="cl-donut-wrap">
+            ${renderClosedloopDonut(cl)}
+          </div>
+
+          <!-- Closedloop legend -->
+          <div class="cl-legend">
+            <div class="cl-legend-row">
+              <div class="cl-legend-sq" style="background:#F85271;"></div>
+              <span class="cl-legend-name">Critical</span>
+              <span class="cl-legend-pct">${cl.critical.pct}%</span>
+              <span class="cl-legend-count">${cl.critical.count}</span>
+            </div>
+            <div class="cl-legend-row">
+              <div class="cl-legend-sq" style="background:#F9876A;"></div>
+              <span class="cl-legend-name">High</span>
+              <span class="cl-legend-pct">${cl.high.pct}%</span>
+              <span class="cl-legend-count">${cl.high.count}</span>
+            </div>
+            <div class="cl-legend-row">
+              <div class="cl-legend-sq" style="background:#F1DA7E;"></div>
+              <span class="cl-legend-name">Medium</span>
+              <span class="cl-legend-pct">${cl.medium.pct}%</span>
+              <span class="cl-legend-count">${cl.medium.count}</span>
+            </div>
+            <div class="cl-legend-row">
+              <div class="cl-legend-sq" style="background:#42BD84;"></div>
+              <span class="cl-legend-name">Low</span>
+              <span class="cl-legend-pct">${cl.low.pct}%</span>
+              <span class="cl-legend-count">${cl.low.count}</span>
+            </div>
+          </div>
+        </div>
+        </div>
+
+        <div class="dash-carousel-item">
         <div class="dash-card nps-card">
           <div class="card-title-row">
             <span class="card-title-text">${dashState.segment} NPS</span>
@@ -505,52 +686,19 @@ function renderDashboard() {
             </div>
           </div>
         </div>
+        </div>
+        </div>
 
-        <!-- Closedloop Card -->
-        <div class="dash-card cl-card">
-          <div class="card-title-row">
-            <span class="card-title-text">Closedloop</span>
-            <a class="card-title-link" href="ticket-list.html">Tickets</a>
-            <div class="card-title-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M4 6h16M7 12h10M10 18h4" stroke="#545E6B" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-            </div>
-          </div>
-          <div class="card-separator"></div>
+        <!-- Dot indicators -->
+        <div class="dash-dots" id="dash-dots">
+          <div class="dash-dot active"></div>
+          <div class="dash-dot"></div>
+        </div>
 
-          <!-- Donut -->
-          <div class="cl-donut-wrap">
-            ${renderClosedloopDonut(cl)}
-          </div>
-
-          <!-- Closedloop legend -->
-          <div class="cl-legend">
-            <div class="cl-legend-row">
-              <div class="cl-legend-sq" style="background:#F85271;"></div>
-              <span class="cl-legend-name">Critical</span>
-              <span class="cl-legend-pct">${cl.critical.pct}%</span>
-              <span class="cl-legend-count">${cl.critical.count}</span>
-            </div>
-            <div class="cl-legend-row">
-              <div class="cl-legend-sq" style="background:#F9876A;"></div>
-              <span class="cl-legend-name">High</span>
-              <span class="cl-legend-pct">${cl.high.pct}%</span>
-              <span class="cl-legend-count">${cl.high.count}</span>
-            </div>
-            <div class="cl-legend-row">
-              <div class="cl-legend-sq" style="background:#F1DA7E;"></div>
-              <span class="cl-legend-name">Medium</span>
-              <span class="cl-legend-pct">${cl.medium.pct}%</span>
-              <span class="cl-legend-count">${cl.medium.count}</span>
-            </div>
-            <div class="cl-legend-row">
-              <div class="cl-legend-sq" style="background:#42BD84;"></div>
-              <span class="cl-legend-name">Low</span>
-              <span class="cl-legend-pct">${cl.low.pct}%</span>
-              <span class="cl-legend-count">${cl.low.count}</span>
-            </div>
-          </div>
+        <!-- Quick Action -->
+        <div class="qa-title">Quick Action</div>
+        <div class="qa-list">
+          ${_quickActionTickets().map(t => renderTicketCard(t, `openTicket('${t.id}')`)).join('')}
         </div>
 
         <div style="height:16px;"></div>
@@ -653,6 +801,16 @@ window._dfApply = function() {
   const el = document.getElementById('dash-date-label');
   if (el) el.textContent = label;
   closeDateFilter();
+};
+
+/* ── Carousel dot sync ───────────────────── */
+window.onCarouselScroll = function() {
+  const el = document.getElementById('dash-carousel');
+  if (!el) return;
+  const idx = Math.round(el.scrollLeft / el.clientWidth);
+  document.querySelectorAll('#dash-dots .dash-dot').forEach((d, i) => {
+    d.classList.toggle('active', i === idx);
+  });
 };
 
 /* ── Segment callback ───────────────────── */

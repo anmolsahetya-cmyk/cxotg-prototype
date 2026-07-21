@@ -15,6 +15,86 @@
     }
     .fl-chip.sel { background: #1B3380; color: #fff; }
 
+    .cl-pill {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border: 1px solid #E4E4E4;
+      border-radius: 14px;
+      padding: 12px 14px;
+      background: #fff;
+      cursor: pointer;
+      font-family: var(--font);
+      width: 100%;
+      min-width: 0;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+    .cl-pill-text { flex: 1; min-width: 0; text-align: left; }
+    .cl-pill-eyebrow { font-size: 11.5px; color: #909090; }
+    .cl-pill-value { font-size: 15px; color: #404A5B; font-weight: 600; margin-top: 1px; }
+    .cl-date-btn {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+      border: none;
+      background: none;
+      padding: 4px 0;
+      cursor: pointer;
+      font-size: 13px;
+      color: #1b87e6;
+      font-family: var(--font);
+      width: 100%;
+    }
+
+    /* Segmented tab control */
+    .seg-ctl {
+      position: relative;
+      display: flex;
+      background: #EEF1F6;
+      border-radius: 12px;
+      padding: 4px;
+      margin: 12px 16px 4px;
+      flex-shrink: 0;
+    }
+    .seg-ctl-thumb {
+      position: absolute;
+      top: 4px; bottom: 4px;
+      width: calc((100% - 8px) / 4);
+      background: #fff;
+      border-radius: 9px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+      transition: transform 220ms cubic-bezier(0.25,0.46,0.45,0.94);
+    }
+    .seg-ctl-item {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      text-align: center;
+      padding: 9px 0;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: var(--font);
+      color: #6B7280;
+      cursor: pointer;
+      user-select: none;
+      transition: color 200ms;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .seg-ctl-item.active { color: #1B3380; }
+    .seg-ctl-count {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 10px;
+      background: #EEF3FB;
+      color: #6B7280;
+    }
+    .seg-ctl-item.active .seg-ctl-count { background: #1b87e6; color: #fff; }
+
     /* Toggle */
     .tgl { width: 50px; height: 28px; border-radius: 14px; background: #BDBDBD; position: relative; cursor: pointer; transition: background 200ms; flex-shrink: 0; }
     .tgl.on { background: #1b87e6; }
@@ -36,7 +116,16 @@ let clState = {
   filters: { status: [], priority: [], type: [], tags: [], onlyMyTickets: true },
   filterCount: 1,
   visibleCount: 10,
+  tab: 'escalated',
 };
+
+const _TAB_STATUS_MAP = { escalated: [2], new: [0], open: [1], resolved: [3] };
+const _TABS = [
+  { key: 'escalated', label: 'Escalated' },
+  { key: 'new',       label: 'New' },
+  { key: 'open',      label: 'Open' },
+  { key: 'resolved',  label: 'Resolved' },
+];
 
 const urlParams = new URLSearchParams(window.location.search);
 const statusParam = urlParams.get('status');
@@ -49,7 +138,9 @@ if (statusParam !== null) {
    Filter logic
    ============================================================ */
 function getFilteredTickets() {
-  let tickets = DATA.tickets;
+  let tickets = clState.searchQuery
+    ? DATA.tickets.slice()
+    : DATA.tickets.filter(t => _TAB_STATUS_MAP[clState.tab].includes(t.statusId));
   if (clState.searchQuery) {
     const q = clState.searchQuery.toLowerCase();
     tickets = tickets.filter(t =>
@@ -156,21 +247,11 @@ function renderClosedLoop() {
   return `
     <div class="screen-content">
 
-      <!-- Dark navy header -->
-      <div style="background:#1B3380;display:flex;align-items:center;padding:12px 16px 14px;gap:12px;flex-shrink:0;">
-        <button onclick="openDrawer()" style="background:none;border:none;cursor:pointer;color:#fff;display:flex;align-items:center;padding:4px;">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
-            <line x1="3" y1="6" x2="21" y2="6"/>
-            <line x1="3" y1="12" x2="21" y2="12"/>
-            <line x1="3" y1="18" x2="21" y2="18"/>
-          </svg>
-        </button>
-        <div style="flex:1;">
-          <div style="font-size:22px;font-weight:700;color:#fff;font-family:var(--font);line-height:1.2;">Closedloop</div>
-          <div style="font-size:14px;color:rgba(255,255,255,0.80);font-family:var(--font);">${clState.segment}</div>
-        </div>
-        <button onclick="window.location.href='notifications.html'" style="background:none;border:none;cursor:pointer;position:relative;color:#fff;display:flex;align-items:center;padding:4px;">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
+      <!-- App bar -->
+      <div style="background:#fff;border-bottom:1px solid #E4E4E4;display:flex;align-items:center;padding:10px 18px;gap:12px;flex-shrink:0;">
+        ${renderSegmentSelector(clState.segment, 'cl-segment-label', "openSegmentSheet(clState.segment, onClSegmentSelect)")}
+        <button onclick="window.location.href='notifications.html'" style="background:none;border:none;cursor:pointer;position:relative;display:flex;align-items:center;padding:4px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1B3380" stroke-width="2" stroke-linecap="round">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
             <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
           </svg>
@@ -178,32 +259,38 @@ function renderClosedLoop() {
         </button>
       </div>
 
-      <!-- Date / Filter bar -->
-      <div style="background:#fff;border-bottom:1px solid #ebebeb;display:flex;align-items:center;padding:10px 16px;gap:12px;flex-shrink:0;">
-        <div style="display:flex;align-items:center;gap:8px;border:1px solid #d0d3d8;border-radius:8px;padding:7px 12px;flex:1;cursor:pointer;" onclick="showToast('Use Dashboard to adjust date range','info')">
-          <span style="font-size:14px;color:#404A5B;font-family:var(--font);">${DATA.dateRangeLabel}</span>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#545E6B" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-left:auto;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <!-- Date filter row -->
+      <div style="background:#fff;border-bottom:1px solid #E4E4E4;display:flex;flex-direction:column;align-items:stretch;padding:10px 16px;gap:8px;flex-shrink:0;">
+        <button class="cl-date-btn" onclick="showToast('Use Dashboard to adjust date range','info')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1b87e6" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span>${DATA.dateRangeLabel}</span>
+        </button>
+      </div>
+
+      <!-- Search + Filter row -->
+      <div style="background:#fff;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;padding:10px 16px;gap:10px;flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:8px;background:#F3F4F6;border:1px solid #e2e4e8;border-radius:22px;padding:9px 14px;flex:1;min-width:0;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9B9B9B" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" placeholder="Search by #ID, name, email"
+            value="${clState.searchQuery}"
+            oninput="onSearch(this.value)"
+            id="tl-search"
+            style="flex:1;min-width:0;border:none;background:transparent;font-size:15px;color:#545E6B;font-family:var(--font);outline:none;"/>
         </div>
-        <button onclick="openFilterSheet()" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;padding:4px;white-space:nowrap;">
+        <button onclick="openFilterSheet()" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;padding:4px;white-space:nowrap;flex-shrink:0;">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="#1b87e6"><polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46 22,3"/></svg>
           <span style="font-size:15px;font-weight:600;font-family:var(--font);color:#1b87e6;">${filterLabel}</span>
         </button>
       </div>
 
-      <!-- Search bar -->
-      <div style="background:#fff;padding:10px 16px;border-bottom:1px solid #f0f0f0;flex-shrink:0;">
-        <div style="display:flex;align-items:center;gap:8px;background:#F3F4F6;border:1px solid #e2e4e8;border-radius:22px;padding:9px 14px;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9B9B9B" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" placeholder="Search by #ID, name, email"
-            value="${clState.searchQuery}"
-            oninput="onSearch(this.value)"
-            id="tl-search"
-            style="flex:1;border:none;background:transparent;font-size:15px;color:#545E6B;font-family:var(--font);outline:none;"/>
-        </div>
+      <!-- Segmented tabs (status) -->
+      <div id="cl-tabs" style="display:${clState.searchQuery ? 'none' : ''};flex-shrink:0;">
+        ${_segmentedControlHTML()}
       </div>
 
       <!-- Ticket list -->
-      <div id="tl-list" style="flex:1;overflow-y:auto;background:#F5F5F7;padding:8px 0 80px;">
+      <div id="tl-list" style="flex:1;overflow-y:auto;background:#F5F5F7;padding:8px 0 80px;"
+        ontouchstart="_tlTouchStart(event)" ontouchend="_tlTouchEnd(event)">
         ${_ticketListInner(visible, tickets)}
       </div>
 
@@ -213,6 +300,22 @@ function renderClosedLoop() {
           <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
         </svg>
       </a>
+    </div>
+  `;
+}
+
+function _segmentedControlHTML() {
+  const idx = _TABS.findIndex(t => t.key === clState.tab);
+  const counts = _TABS.map(t => DATA.tickets.filter(x => _TAB_STATUS_MAP[t.key].includes(x.statusId)).length);
+  return `
+    <div class="seg-ctl">
+      <div class="seg-ctl-thumb" style="transform:translateX(${idx * 100}%);"></div>
+      ${_TABS.map((t, i) => `
+        <div class="seg-ctl-item${t.key === clState.tab ? ' active' : ''}" onclick="switchTab('${t.key}')">
+          <span>${t.label}</span>
+          <span class="seg-ctl-count">${counts[i]}</span>
+        </div>
+      `).join('')}
     </div>
   `;
 }
@@ -234,9 +337,37 @@ function _ticketListInner(visible, tickets) {
 /* ============================================================
    Actions
    ============================================================ */
+window.onClSegmentSelect = function(id, name) {
+  clState.segment = name;
+  const el = document.getElementById('cl-segment-label');
+  if (el) el.textContent = name;
+  showToast('Segment: ' + name, 'info');
+};
+
+window.switchTab = function(key) {
+  if (clState.tab === key) return;
+  clState.tab = key;
+  clState.visibleCount = 10;
+  document.body.innerHTML = renderPhoneShell(renderClosedLoop(), 'closedloop');
+};
+
+let _tlTouchX = null;
+window._tlTouchStart = function(e) { _tlTouchX = e.changedTouches[0].clientX; };
+window._tlTouchEnd = function(e) {
+  if (_tlTouchX === null) return;
+  const dx = e.changedTouches[0].clientX - _tlTouchX;
+  _tlTouchX = null;
+  if (Math.abs(dx) < 50) return;
+  const idx = _TABS.findIndex(t => t.key === clState.tab);
+  const next = dx < 0 ? idx + 1 : idx - 1;
+  if (next >= 0 && next < _TABS.length) window.switchTab(_TABS[next].key);
+};
+
 window.onSearch = function(val) {
   clState.searchQuery = val;
   clState.visibleCount = 10;
+  const tabsEl = document.getElementById('cl-tabs');
+  if (tabsEl) tabsEl.style.display = val ? 'none' : '';
   refreshList();
 };
 

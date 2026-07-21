@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pearl CX — Account</title>
+  <link rel="stylesheet" href="shared/styles.css">
+  <style>
+    .acct-header {
+      background: #fff;
+      border-bottom: 1px solid var(--divider);
+      flex-shrink: 0;
+      padding: 18px 18px 20px;
+    }
+    .acct-header-title {
+      font-size: 22px;
+      font-weight: 400;
+      color: #1B3380;
+      font-family: var(--font);
+    }
+    .acct-body {
+      flex: 1;
+      overflow-y: auto;
+      background: #F3F5F8;
+      padding: 0 16px 90px;
+    }
+    .acct-body::-webkit-scrollbar { display: none; }
+
+    .acct-profile-card {
+      background: #fff;
+      border-radius: 16px;
+      border: 1px solid rgba(0,0,0,0.08);
+      padding: 20px 18px;
+      margin-top: 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .acct-avatar {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--accent-2);
+      color: #fff;
+      font-size: 20px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .acct-name { font-size: 18px; font-weight: 700; color: #1B3380; }
+    .acct-role { font-size: 13px; color: #909090; margin-top: 2px; }
+
+    .acct-section-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #909090;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 24px 4px 8px;
+    }
+    .acct-card {
+      background: #fff;
+      border-radius: 14px;
+      border: 1px solid rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    .acct-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--divider);
+    }
+    .acct-row:last-child { border-bottom: none; }
+    .acct-row-label { font-size: 13px; color: #909090; }
+    .acct-row-value { font-size: 14px; color: #404A5B; font-weight: 500; text-align: right; }
+
+    .acct-logout-btn {
+      width: 100%;
+      height: 50px;
+      margin-top: 24px;
+      border-radius: 12px;
+      border: 1.5px solid #F85271;
+      background: #fff;
+      color: #E53251;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: var(--font);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .acct-logout-btn:active { background: #FFF5F5; }
+    .acct-version { text-align: center; font-size: 11px; color: #B0B0B0; margin-top: 16px; }
+  </style>
+</head>
+<body>
+<script src="shared/data.js"></script>
+<script src="shared/components.js"></script>
+<script>
+
+function getQaCount() {
+  const v = parseInt(localStorage.getItem('qaCount'), 10);
+  return (v >= 1 && v <= 10) ? v : 5;
+}
+let qaCount = getQaCount();
+
+window.changeQaCount = function(delta) {
+  qaCount = Math.min(10, Math.max(1, qaCount + delta));
+  localStorage.setItem('qaCount', qaCount);
+  const el = document.getElementById('qa-count-value');
+  if (el) el.textContent = qaCount;
+};
+
+function renderAccount() {
+  const u = DATA.user;
+  return `
+    <div class="screen-content">
+      <div class="acct-header">
+        <div class="acct-header-title">Account</div>
+      </div>
+
+      <div class="acct-body">
+        <div class="acct-profile-card">
+          <div class="acct-avatar">${u.initials}</div>
+          <div>
+            <div class="acct-name">${u.name}</div>
+            <div class="acct-role">${u.role}</div>
+          </div>
+        </div>
+
+        <div class="acct-section-label">Workspace</div>
+        <div class="acct-card">
+          <div class="acct-row">
+            <span class="acct-row-label">Organization</span>
+            <span class="acct-row-value">${u.org}</span>
+          </div>
+          <div class="acct-row">
+            <span class="acct-row-label">Email</span>
+            <span class="acct-row-value">${u.email}</span>
+          </div>
+          <div class="acct-row">
+            <span class="acct-row-label">Role</span>
+            <span class="acct-row-value">${u.role}</span>
+          </div>
+        </div>
+
+        <div class="acct-section-label">Settings</div>
+        <div class="acct-card">
+          <div class="acct-row">
+            <span class="acct-row-label">Number of "Quick Action" tickets</span>
+            <span style="display:flex;align-items:center;gap:10px;">
+              <button onclick="changeQaCount(-1)" style="width:28px;height:28px;border-radius:14px;border:1px solid #D0D3D8;background:#fff;color:#1B3380;font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">−</button>
+              <span id="qa-count-value" class="acct-row-value" style="min-width:16px;text-align:center;">${qaCount}</span>
+              <button onclick="changeQaCount(1)" style="width:28px;height:28px;border-radius:14px;border:1px solid #D0D3D8;background:#fff;color:#1B3380;font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">+</button>
+            </span>
+          </div>
+        </div>
+
+        <div class="acct-section-label">Notifications</div>
+        <div class="acct-card">
+          <div class="acct-row" style="cursor:pointer;" onclick="window.location.href='notifications.html'">
+            <span class="acct-row-label" style="color:#404A5B;font-weight:500;">View notifications</span>
+            <span style="display:flex;align-items:center;gap:6px;">
+              <span class="badge">${DATA.notificationCount}</span>
+              ${renderIcon('chevron_right', 16)}
+            </span>
+          </div>
+        </div>
+
+        <button class="acct-logout-btn" onclick="window.location.href='marketing.html'">
+          ${renderIcon('logout', 18)}
+          Log out
+        </button>
+        <div class="acct-version">Pearl CX v2.4.1</div>
+      </div>
+    </div>
+  `;
+}
+
+document.body.innerHTML = renderPhoneShell(renderAccount(), 'account');
+</script>
+</body>
+</html>
