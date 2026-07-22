@@ -2,61 +2,98 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Pearl CX — Ticket Detail</title>
+  <title>Pearl CX — Ticket Detail (v2)</title>
   <link rel="stylesheet" href="shared/styles.css">
   <style>
-    /* Dropdown field box — matches RenderDropDownButton */
-    .dd-box {
-      display: flex; align-items: center;
-      border: 1px solid #A2A6A9; height: 46px;
-      padding: 0 12px; border-radius: 2px;
-      cursor: pointer; background: #fff;
-      margin-bottom: 4px;
+    /* ----- Header + jump-nav (fixed chrome, not part of the scroll) ----- */
+    .td-header {
+      display: flex; align-items: center; gap: var(--sp-2);
+      padding: 0 var(--sp-4); height: 52px; background: var(--bg-card);
+      border-bottom: 1px solid var(--border); flex-shrink: 0;
     }
-    .dd-box.disabled { opacity: 0.6; cursor: default; }
+    .td-header-title { flex: 1; text-align: center; font-size: var(--text-lg); font-weight: 700; color: var(--text); }
+    .td-jumpnav {
+      display: flex; gap: var(--sp-2); padding: var(--sp-2) var(--sp-4);
+      overflow-x: auto; background: var(--bg-card); border-bottom: 1px solid var(--divider); flex-shrink: 0;
+    }
+    .td-jumpnav::-webkit-scrollbar { display: none; }
+    .td-chip {
+      white-space: nowrap; padding: 6px 14px; border-radius: var(--radius-pill);
+      font-size: 13px; font-weight: 600; cursor: pointer; transition: background 150ms, color 150ms;
+    }
+    .td-chip.active { background: var(--accent-bg); color: var(--accent); }
+    .td-chip:not(.active) { background: var(--bg-selection); color: var(--text-light); }
 
-    /* Section card */
-    .ov-card {
-      background: #fff; margin: 8px 8px 0;
-      padding: 14px 12px; border-radius: 4px;
-    }
+    /* ----- NPS / detractor banner ----- */
+    .td-nps-banner { display: flex; align-items: center; gap: var(--sp-3); margin: var(--sp-3) var(--sp-4) 0; padding: var(--sp-3); border-radius: var(--radius); background: rgba(248,82,113,0.08); border: 1px solid rgba(248,82,113,0.35); }
+    .td-nps-score { width: 36px; height: 36px; border-radius: var(--radius); background: var(--detractor); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; flex-shrink: 0; }
+    .td-nps-copy { font-size: var(--text-sm); color: var(--text); line-height: 1.4; }
+    .td-nps-copy b { color: var(--error); }
 
-    /* Section heading "Details" / "Contact" */
-    .ov-heading {
-      font-size: 22px; font-weight: 700;
-      color: #1b87e6; font-family: var(--font);
-      margin-bottom: 14px;
-    }
+    /* ----- Customer card ----- */
+    .td-customer-card { padding: var(--sp-3) var(--sp-4); }
+    .td-customer-row { display: flex; align-items: center; gap: var(--sp-3); }
+    .td-customer-name { font-size: var(--text-base); font-weight: 700; color: var(--text); }
+    .td-customer-email { font-size: var(--text-sm); color: var(--text-light); margin-top: 2px; }
+    .td-customer-actions { display: flex; gap: var(--sp-2); margin-top: var(--sp-3); }
+    .td-customer-actions .btn { flex: 1; }
 
-    /* Label + value stacked pair */
-    .ov-field { margin-bottom: 14px; }
-    .ov-label {
-      font-size: 14px; color: #8E9AAD;
-      font-family: var(--font); margin-bottom: 3px;
+    /* ----- Status / Priority / Assign-to field cards ----- */
+    .td-fieldcard-row { display: flex; gap: var(--sp-2); margin: var(--sp-2) var(--sp-4); }
+    .td-fieldcard {
+      flex: 1; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg);
+      padding: var(--sp-3); cursor: pointer; transition: background 120ms, border-color 120ms;
     }
-    .ov-value {
-      font-size: 17px; color: #404A5B;
-      font-family: var(--font); font-weight: 400; line-height: 1.35;
-    }
+    .td-fieldcard:active { background: var(--bg-selection); }
+    .td-fieldcard-label { font-size: 11px; font-weight: 700; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: var(--sp-2); }
+    .td-fieldcard-value-row { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
+    .td-fieldcard-value { display: flex; align-items: center; gap: 8px; font-size: var(--text-base); font-weight: 700; color: var(--text); min-width: 0; }
+    .td-fieldcard-value span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .td-fieldcard-chevron { color: var(--text-light); flex-shrink: 0; display: flex; }
+    .td-status-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
+    .td-priority-flag { flex-shrink: 0; display: flex; }
 
-    /* AI tag chips */
-    .ai-tag-chip {
-      display: inline-flex; align-items: center;
-      border: 1px solid #BDD7F5; border-radius: 4px;
-      background: #EEF3FB; color: #1b87e6;
-      font-size: 14px; font-family: var(--font);
-      padding: 8px 12px; margin: 0 8px 8px 0;
+    .td-assigncard {
+      display: flex; align-items: center; gap: var(--sp-3); background: var(--bg-card);
+      border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--sp-3);
+      margin: var(--sp-2) var(--sp-4); cursor: pointer; transition: background 120ms;
     }
+    .td-assigncard:active { background: var(--bg-selection); }
+    .td-assigncard-body { flex: 1; min-width: 0; }
+    .td-assigncard-label { font-size: 11px; font-weight: 700; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
+    .td-assigncard-name { font-size: var(--text-base); font-weight: 700; color: var(--text); }
 
-    /* Picker list item */
-    .picker-item {
-      display: flex; align-items: center; gap: 12px;
-      padding: 14px 16px; cursor: pointer;
-      border-bottom: 1px solid #f0f0f0;
-    }
-    .picker-item:last-child { border-bottom: none; }
-    .picker-item-label { flex: 1; font-size: 15px; color: #404A5B; font-family: var(--font); }
-    .picker-item.selected .picker-item-label { color: #1b87e6; font-weight: 600; }
+    /* ----- Picker rows (Status / Priority / Assignee sheets) ----- */
+    .td-picker-row { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); cursor: pointer; border-bottom: 1px solid var(--divider); transition: background 120ms; }
+    .td-picker-row:last-child { border-bottom: none; }
+    .td-picker-row:active { background: var(--bg-selection); }
+    .td-picker-row.selected { background: var(--accent-bg); }
+    .td-picker-label { flex: 1; font-size: var(--text-base); font-weight: 600; color: var(--text); }
+    .td-picker-row.selected .td-picker-label { color: var(--accent); }
+    .td-picker-sub { font-size: 12px; color: var(--text-light); margin-top: 1px; }
+    .td-picker-check { color: var(--accent); flex-shrink: 0; display: flex; }
+
+    /* ----- Root cause inline card ----- */
+    .td-rc-chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: var(--sp-2); }
+    .td-rc-chip { background: var(--bg-selection); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 10px; font-size: 12px; color: var(--text); }
+    .td-rc-edit-link { font-size: 13px; color: var(--accent); font-weight: 600; margin-top: var(--sp-2); cursor: pointer; }
+
+    /* ----- CRC tree (rendered inside a bottom sheet) ----- */
+    .crc-section-head { display: flex; align-items: center; background: var(--bg-selection); border: 1px solid var(--border); border-radius: var(--radius); height: 48px; padding: 0 var(--sp-3); cursor: pointer; margin-bottom: var(--sp-2); }
+    .crc-section-head span { flex: 1; font-size: var(--text-sm); font-weight: 600; color: var(--text); }
+    .crc-item { background: var(--bg-card); border: 1px solid var(--divider); border-radius: var(--radius); padding: var(--sp-3); margin-bottom: var(--sp-2); cursor: pointer; }
+    .crc-item-row { display: flex; align-items: center; gap: var(--sp-3); }
+    .crc-sub-row { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-2) 0 var(--sp-2) var(--sp-5); border-top: 1px solid var(--divider); margin-top: var(--sp-2); cursor: pointer; }
+    .crc-cb { width: 20px; height: 20px; border-radius: 4px; border: 2px solid var(--border-2); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+    .crc-cb.checked { background: var(--accent); border-color: var(--accent); }
+    .crc-other-input { flex: 1; border: none; border-bottom: 1.5px solid var(--border); background: var(--bg-selection); padding: var(--sp-2) var(--sp-3); font-size: var(--text-base); font-family: var(--font); outline: none; border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
+
+    /* ----- More sheet ----- */
+    .td-more-row { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); cursor: pointer; }
+    .td-more-row:active { background: var(--bg-selection); }
+
+    /* ----- Add comment box ----- */
+    .td-add-comment { padding: var(--sp-2) var(--sp-4) var(--sp-4); }
   </style>
 </head>
 <body>
@@ -71,629 +108,553 @@ const storedId = localStorage.getItem('selectedTicketId') || 'TKT-1041';
 let ticket = DATA.tickets.find(t => t.id === storedId) || DATA.tickets[0];
 ticket = JSON.parse(JSON.stringify(ticket));
 
-let activeTab  = 'overview';
-let _screen    = 'detail'; // 'detail' | 'crc'
+/* ============================================================
+   Screen state
+   ============================================================ */
+const _expandedReplies = new Set();
+let _replyingTo = null;
+let _actSort = 'latest';
+const _crcExpanded = new Set();
+const _crcSelected = new Set();
+let _otherChecked = false;
+let _otherText = '';
 
 /* ============================================================
-   Helpers
+   Snooze helpers (matches dashboard.html's Quick Action snooze)
    ============================================================ */
-const _PRI_COLORS  = ['#42BD84', '#F6C140', '#E4632D', '#DA2222'];
-const _PRI_LABELS  = ['Low', 'Medium', 'High', 'Critical'];
-const _STA_COLORS  = [null, '#40CA5A', '#FF9145', '#1b87e6'];
-const _STA_LABELS  = ['New', 'Open', 'Escalated', 'Resolved'];
+function getSnoozeDays() {
+  const v = parseInt(localStorage.getItem('snoozeDays'), 10);
+  return (v >= 1 && v <= 7) ? v : 1;
+}
+function _getSnoozeMap() {
+  try { return JSON.parse(localStorage.getItem('ticketSnoozes')) || {}; }
+  catch (e) { return {}; }
+}
+function _snoozeTicket(id) {
+  const map = _getSnoozeMap();
+  map[id] = Date.now() + getSnoozeDays() * 24 * 60 * 60 * 1000;
+  localStorage.setItem('ticketSnoozes', JSON.stringify(map));
+}
 
-function _priFlag(color, size) {
-  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="${color}" style="margin-right:8px;flex-shrink:0;">
+/* ============================================================
+   Main render
+   ============================================================ */
+function renderDetail() {
+  const assignee = getManager(ticket.assigneeId);
+  const segment  = getSegment(ticket.segmentId);
+
+  return `
+    <div class="screen-content">
+      <div class="td-header">
+        <button class="icon-btn" onclick="window.history.length>1?window.history.back():window.location.href='ticket-list.html'">
+          ${renderIcon('back', 22)}
+        </button>
+        <span class="td-header-title">Ticket #${ticket.id.replace('TKT-', '')}</span>
+        <button class="icon-btn" onclick="openMoreSheet()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+        </button>
+      </div>
+
+      <div class="td-jumpnav" id="td-jumpnav">
+        <div class="td-chip active" data-target="sec-top" onclick="jumpTo('sec-top')">Overview</div>
+        <div class="td-chip" data-target="sec-comments" onclick="jumpTo('sec-comments')">Comments</div>
+        <div class="td-chip" data-target="sec-activity" onclick="jumpTo('sec-activity')">Activity</div>
+        <div class="td-chip" data-target="sec-rootcause" onclick="jumpTo('sec-rootcause')">Root cause</div>
+      </div>
+
+      <div class="screen-body" id="td-body" style="background:var(--bg-page);">
+        ${_renderNpsBanner()}
+
+        <div id="sec-top">
+          <div class="card td-customer-card" style="margin:var(--sp-3) var(--sp-4) var(--sp-2);">
+            <div class="td-customer-row">
+              ${renderAvatar(ticket.customer, '#CC6677', 'lg')}
+              <div style="min-width:0;">
+                <div class="td-customer-name">${ticket.customer}</div>
+                <div class="td-customer-email">${ticket.email}</div>
+              </div>
+            </div>
+            <div class="td-customer-actions">
+              <div class="btn btn-outline btn-sm" onclick="showToast('Calling ${ticket.customer}…','info')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                Call
+              </div>
+              <div class="btn btn-outline btn-sm" onclick="window.location.href='send-email.html'">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16v16H4z"/><path d="m22 6-10 7L2 6"/></svg>
+                Email
+              </div>
+            </div>
+          </div>
+
+          <div class="td-fieldcard-row">
+            <div class="td-fieldcard" id="td-status-card" onclick="openStatusSheet()">${_statusCardInnerHTML()}</div>
+            <div class="td-fieldcard" id="td-priority-card" onclick="openPrioritySheet()">${_priorityCardInnerHTML()}</div>
+          </div>
+
+          <div class="td-assigncard" id="td-assign-card" onclick="openAssigneeSheet()">${_assignCardInnerHTML()}</div>
+
+          <div class="card" style="margin:var(--sp-2) var(--sp-4);">
+            <div class="detail-row"><div class="detail-label">Segment</div><div class="detail-value">${segment.name}</div></div>
+            <div class="detail-row"><div class="detail-label">Created</div><div class="detail-value">${formatDate(ticket.issueDate)}</div></div>
+          </div>
+
+          <div class="card" style="margin:var(--sp-2) var(--sp-4);padding:var(--sp-3) var(--sp-4);">
+            <div class="section-heading" style="padding:0 0 6px;">Description</div>
+            <div style="font-size:var(--text-sm);color:var(--text);line-height:1.5;">${ticket.description || ''}</div>
+            ${ticket.tags?.length ? `
+              <div class="chip-wrap" style="padding:var(--sp-2) 0 0;">
+                ${ticket.tags.map(t => `<span class="chip">${t}</span>`).join('')}
+              </div>
+            ` : ''}
+          </div>
+        </div>
+
+        <div id="sec-rootcause">
+          <div class="card" style="margin:var(--sp-2) var(--sp-4);padding:var(--sp-3) var(--sp-4);">
+            <div class="section-heading" style="padding:0 0 6px;">Root cause</div>
+            <div id="td-rootcause-inner">${_rootCauseInnerHTML()}</div>
+          </div>
+        </div>
+
+        <div id="sec-comments">
+          <div class="section-heading">Comments</div>
+          <div id="td-comments-list">${_commentsListHTML()}</div>
+          <div class="td-add-comment">
+            <textarea id="td-comment-input" class="input-field" placeholder="Write a comment" rows="2"
+              style="resize:none;"
+              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitComment();}"></textarea>
+            <button class="btn btn-primary btn-sm" style="margin-top:var(--sp-2);" onclick="submitComment()">Post comment</button>
+          </div>
+        </div>
+
+        <div id="sec-activity">
+          <div id="td-activity-inner">${_activityInnerHTML()}</div>
+        </div>
+
+        <div style="height:var(--sp-6);"></div>
+      </div>
+    </div>
+  `;
+}
+
+/* ============================================================
+   More sheet (Snooze, Delete)
+   ============================================================ */
+window.onSnoozeTicket = function() {
+  closeSheet('more');
+  _snoozeTicket(ticket.id);
+  const days = getSnoozeDays();
+  showToast(`Snoozed for ${days} day${days === 1 ? '' : 's'}`, 'success');
+};
+
+window.openMoreSheet = function() {
+  openSheet('more', `
+    <div class="td-more-row" onclick="onSnoozeTicket()">
+      ${renderIcon('history', 20)}
+      <span style="font-size:var(--text-base);font-weight:600;color:var(--text);">Snooze ticket</span>
+    </div>
+    <div class="td-more-row" style="color:var(--error);" onclick="closeSheet('more');openDeleteConfirm();">
+      ${renderIcon('trash', 20)}
+      <span style="font-size:var(--text-base);font-weight:600;">Delete ticket</span>
+    </div>
+  `, 'More actions');
+};
+
+/* ============================================================
+   NPS / detractor banner
+   ============================================================ */
+function _renderNpsBanner() {
+  if (ticket.npsLabel !== 'Detractor') return '';
+  const quote = ticket.npsVerbatim
+    ? `"${ticket.npsVerbatim}"`
+    : `This ticket originated from a detractor survey response.`;
+  return `
+    <div class="td-nps-banner">
+      <div class="td-nps-score">${ticket.npsScore}</div>
+      <div class="td-nps-copy"><b>Detractor</b> — ${quote}</div>
+    </div>
+  `;
+}
+
+/* ============================================================
+   Status / Priority / Assignee — field cards + sheets
+   ============================================================ */
+const _STATUS_COLORS   = ['var(--status-new-border)', 'var(--status-open-border)', 'var(--status-escalated-border)', 'var(--status-resolved-border)'];
+const _PRIORITY_COLORS = ['var(--priority-low-border)', 'var(--priority-medium-border)', 'var(--priority-high-border)', 'var(--priority-critical-border)'];
+
+function _priorityFlagSVG(color, size) {
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="${color}" class="td-priority-flag">
     <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
     <line x1="4" y1="22" x2="4" y2="15" stroke="${color}" stroke-width="2" stroke-linecap="round"/>
   </svg>`;
 }
 
-function _staDot(color) {
-  if (!color) {
-    return `<div style="width:12px;height:12px;border-radius:6px;border:2px solid #8E9AAD;flex-shrink:0;margin-right:8px;"></div>`;
-  }
-  return `<div style="width:12px;height:12px;border-radius:6px;background:${color};flex-shrink:0;margin-right:8px;"></div>`;
-}
-
-function _chevronDown() {
-  return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E9AAD" stroke-width="2" stroke-linecap="round" style="margin-left:auto;flex-shrink:0;"><polyline points="6 9 12 15 18 9"/></svg>`;
-}
-
-function _copyIcon() {
-  return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1b87e6" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-left:6px;"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
-}
-
-function _ddLabel(text) {
-  return `<span style="font-size:15px;color:#404A5B;font-family:var(--font);">${text}</span>`;
-}
-
-function _formatLongDate(dateStr) {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-}
-
-/* ============================================================
-   Main shell
-   ============================================================ */
-function renderDetail() {
-  const tabs = [
-    { id: 'overview',  label: 'Overview' },
-    { id: 'comments',  label: 'Comments' },
-    { id: 'activity',  label: 'Activity log' },
-    { id: 'rootcause', label: 'Root cause' },
-  ];
+function _statusCardInnerHTML() {
+  const s = DATA.statusMap[ticket.statusId];
   return `
-    <div class="screen-content">
-      <!-- White header -->
-      <div style="background:#fff;border-bottom:1px solid #d8d8d8;display:flex;align-items:center;padding:0 16px;height:56px;flex-shrink:0;">
-        <button onclick="window.history.length>1?window.history.back():window.location.href='ticket-list.html'"
-          style="background:none;border:none;cursor:pointer;color:#404A5B;display:flex;align-items:center;padding:4px;margin-right:8px;">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#404A5B" stroke-width="2.5" stroke-linecap="round">
-            <polyline points="15 18 9 12 15 6"/>
-          </svg>
-        </button>
-        <span style="flex:1;text-align:center;font-size:18px;font-weight:700;color:#404A5B;font-family:var(--font);">Ticket #${ticket.id.replace('TKT-','')}</span>
-        <div style="width:30px;"></div>
+    <div class="td-fieldcard-label">Status</div>
+    <div class="td-fieldcard-value-row">
+      <div class="td-fieldcard-value">
+        <span class="td-status-dot" style="background:${_STATUS_COLORS[ticket.statusId]};"></span>
+        <span>${s.label}</span>
       </div>
-
-      <!-- Tab bar -->
-      <div style="background:#fff;display:flex;border-bottom:1px solid #e8e8e8;flex-shrink:0;">
-        ${tabs.map(t => `
-          <div onclick="switchTab('${t.id}')"
-            style="flex:1;display:flex;align-items:center;justify-content:center;height:46px;cursor:pointer;
-              font-size:14px;font-family:var(--font);white-space:nowrap;
-              color:${activeTab===t.id?'#1b87e6':'#404A5B'};
-              font-weight:${activeTab===t.id?'600':'400'};
-              border-bottom:${activeTab===t.id?'2.5px solid #1b87e6':'2.5px solid transparent'};
-              position:relative;top:1px;">
-            ${t.label}
-          </div>
-        `).join('')}
-      </div>
-
-      <!-- Tab content -->
-      <div id="tab-content" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
-        ${getTabContent()}
-      </div>
+      <span class="td-fieldcard-chevron">${renderIcon('chevron_right', 16)}</span>
     </div>
   `;
 }
 
-/* ============================================================
-   Tab routing
-   ============================================================ */
-window.switchTab = function(tab) {
-  activeTab = tab;
-  document.body.innerHTML = renderPhoneShell(renderDetail());
-};
-
-function getTabContent() {
-  switch (activeTab) {
-    case 'overview':  return renderOverviewTab();
-    case 'comments':  return renderCommentsTab();
-    case 'activity':  return renderActivityTab();
-    case 'rootcause': return renderRootCauseTab();
-    default: return renderOverviewTab();
-  }
-}
-
-/* ============================================================
-   Overview tab
-   ============================================================ */
-function renderOverviewTab() {
-  const priColor  = _PRI_COLORS[ticket.priorityId] ?? '#42BD84';
-  const priLabel  = _PRI_LABELS[ticket.priorityId] ?? 'Low';
-  const staColor  = _STA_COLORS[ticket.statusId];
-  const staLabel  = _STA_LABELS[ticket.statusId] ?? 'New';
-  const assignee  = DATA.managers.find(m => m.id === ticket.assigneeId);
-  const segment   = DATA.segments.find(s => s.id === ticket.segmentId);
-  const segName   = segment?.name ?? 'Main Segment';
-  const createdOn = _formatLongDate(ticket.issueDate);
-  const desc      = ticket.description || '';
-  const shortDesc = desc.length > 120 ? desc.slice(0, 120) : desc;
-  const hasMore   = desc.length > 120;
-
+function _priorityCardInnerHTML() {
+  const p = DATA.priorityMap[ticket.priorityId];
   return `
-    <div style="flex:1;overflow-y:auto;background:#F5F5F7;padding-bottom:24px;">
-
-      <!-- Status / Priority / Assigned to card -->
-      <div class="ov-card">
-
-        <div style="font-size:14px;color:#8E9AAD;font-family:var(--font);margin-bottom:6px;">Status</div>
-        <div class="dd-box" onclick="openStatusSheet()">
-          ${_staDot(staColor)}
-          ${_ddLabel(staLabel)}
-          ${_chevronDown()}
-        </div>
-
-        <div style="font-size:14px;color:#8E9AAD;font-family:var(--font);margin-bottom:6px;margin-top:10px;">Priority</div>
-        <div class="dd-box" onclick="openPrioritySheet()">
-          ${_priFlag(priColor, 16)}
-          ${_ddLabel(priLabel)}
-          ${_chevronDown()}
-        </div>
-
-        <div style="font-size:14px;color:#8E9AAD;font-family:var(--font);margin-bottom:6px;margin-top:10px;">Assigned to:</div>
-        <div class="dd-box disabled">
-          ${_ddLabel(assignee?.name ?? 'Unassigned')}
-        </div>
+    <div class="td-fieldcard-label">Priority</div>
+    <div class="td-fieldcard-value-row">
+      <div class="td-fieldcard-value">
+        ${_priorityFlagSVG(_PRIORITY_COLORS[ticket.priorityId], 16)}
+        <span>${p.label}</span>
       </div>
-
-      <!-- Details card -->
-      <div class="ov-card">
-        <div class="ov-heading">Details</div>
-
-        <div class="ov-field">
-          <div class="ov-label">Origin segment:</div>
-          <div class="ov-value">${segName}</div>
-        </div>
-        <div class="ov-field">
-          <div class="ov-label">Current segment:</div>
-          <div class="ov-value">${segName}</div>
-        </div>
-        <div class="ov-field">
-          <div class="ov-label">Created on:</div>
-          <div class="ov-value">${createdOn}</div>
-        </div>
-        <div class="ov-field">
-          <div class="ov-label">Ticket ID:</div>
-          <div style="display:flex;align-items:center;" onclick="showToast('Ticket ID copied','info')">
-            <span class="ov-value" style="color:#1b87e6;">Ticket #${ticket.id.replace('TKT-','')}</span>
-            ${_copyIcon()}
-          </div>
-        </div>
-        <div class="ov-field">
-          <div class="ov-label">Description:</div>
-          <div class="ov-value" style="font-size:15px;line-height:1.5;">
-            ${shortDesc}${hasMore ? ` <span onclick="openDescSheet()" style="color:#1b87e6;cursor:pointer;">...see more</span>` : ''}
-          </div>
-        </div>
-
-        ${ticket.tags?.length ? `
-          <div style="font-size:14px;color:#8E9AAD;font-family:var(--font);margin-bottom:10px;">AI generated tags</div>
-          <div style="display:flex;flex-wrap:wrap;">
-            ${ticket.tags.map(tag => `<span class="ai-tag-chip">${tag}</span>`).join('')}
-          </div>
-        ` : ''}
-      </div>
-
-      <!-- Contact card -->
-      <div class="ov-card">
-        <div class="ov-heading">Contact</div>
-
-        <div class="ov-field">
-          <div class="ov-label">Name</div>
-          <div class="ov-value">${ticket.customer}</div>
-        </div>
-        <div class="ov-field">
-          <div class="ov-label">Email</div>
-          <div class="ov-value">${ticket.email}</div>
-        </div>
-
-        <a href="send-email.html"
-          style="display:flex;align-items:center;justify-content:center;
-            height:52px;border:1px solid #1b87e6;border-radius:8px;
-            color:#1b87e6;font-size:16px;font-family:var(--font);font-weight:500;
-            text-decoration:none;margin-top:4px;">
-          Respond via email
-        </a>
-      </div>
-
-      <!-- Delete ticket -->
-      <div style="margin:16px 8px 8px;">
-        <button onclick="openDeleteConfirm()"
-          style="width:100%;height:52px;background:#C82828;border:none;border-radius:4px;
-            color:#fff;font-size:17px;font-family:var(--font);font-weight:600;cursor:pointer;">
-          Delete ticket
-        </button>
-      </div>
-
+      <span class="td-fieldcard-chevron">${renderIcon('chevron_right', 16)}</span>
     </div>
   `;
 }
 
-/* ============================================================
-   Status sheet
-   ============================================================ */
-function _rmOv(id) { const el=document.getElementById(id); if(el) el.remove(); }
-function _injSheet(id, titleText, bodyHTML) {
-  _rmOv(id);
-  const screen = document.getElementById('screen');
-  if (!screen) return;
-  const el = document.createElement('div');
-  el.id = id;
-  el.style.cssText = 'position:absolute;inset:0;z-index:200;display:flex;flex-direction:column;justify-content:flex-end;';
-  el.innerHTML = `
-    <div style="position:absolute;inset:0;background:rgba(0,0,0,0.35);" onclick="_rmOv('${id}')"></div>
-    <div style="position:relative;z-index:1;background:#fff;border-radius:20px 20px 0 0;max-height:85%;">
-      <div style="display:flex;justify-content:center;padding:10px 0 0;">
-        <div style="width:40px;height:4px;background:#DCDCDC;border-radius:2px;"></div>
-      </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px 10px;">
-        <span style="font-size:22px;font-weight:700;color:#404A5B;font-family:var(--font);">${titleText}</span>
-        <button onclick="_rmOv('${id}')" style="background:none;border:none;font-size:26px;color:#545E6B;cursor:pointer;padding:0;">×</button>
-      </div>
-      <div style="overflow-y:auto;">${bodyHTML}</div>
-    </div>`;
-  screen.appendChild(el);
+function _assignCardInnerHTML() {
+  const assignee = getManager(ticket.assigneeId);
+  return `
+    ${renderAvatar(assignee.name, assignee.avatarColor, 'sm')}
+    <div class="td-assigncard-body">
+      <div class="td-assigncard-label">Assigned to</div>
+      <div class="td-assigncard-name">${assignee.name}</div>
+    </div>
+    <span class="td-fieldcard-chevron">${renderIcon('chevron_right', 18)}</span>
+  `;
 }
 
 window.openStatusSheet = function() {
-  const rows = _STA_LABELS.map((lbl, i) => {
-    const col = _STA_COLORS[i];
-    const isSel = ticket.statusId === i;
-    return `<div class="picker-item${isSel?' selected':''}" onclick="setStatus(${i})">
-      ${_staDot(col)}
-      <span class="picker-item-label">${lbl}</span>
-      ${isSel ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1b87e6" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>` : ''}
+  const rows = Object.entries(DATA.statusMap).map(([id, s]) => {
+    const isSel = ticket.statusId === Number(id);
+    return `<div class="td-picker-row${isSel ? ' selected' : ''}" onclick="setStatus(${id})">
+      <span class="td-status-dot" style="background:${_STATUS_COLORS[id]};"></span>
+      <span class="td-picker-label">${s.label}</span>
+      ${isSel ? `<span class="td-picker-check">${renderIcon('check', 20)}</span>` : ''}
     </div>`;
   }).join('');
-  _injSheet('td-sta-ov', 'Status', rows);
+  openSheet('status', rows, 'Status');
 };
 
 window.setStatus = function(id) {
-  ticket.statusId = id;
-  _rmOv('td-sta-ov');
-  showToast('Status updated to ' + _STA_LABELS[id], 'success');
-  if (activeTab === 'overview') {
-    document.getElementById('tab-content').innerHTML = getTabContent();
-  }
+  ticket.statusId = Number(id);
+  closeSheet('status');
+  document.getElementById('td-status-card').innerHTML = _statusCardInnerHTML();
+  showToast('Status updated to ' + DATA.statusMap[id].label, 'success');
 };
 
-/* ============================================================
-   Priority sheet
-   ============================================================ */
 window.openPrioritySheet = function() {
-  const rows = _PRI_LABELS.map((lbl, i) => {
-    const col = _PRI_COLORS[i];
-    const isSel = ticket.priorityId === i;
-    return `<div class="picker-item${isSel?' selected':''}" onclick="setPriority(${i})">
-      ${_priFlag(col, 16)}
-      <span class="picker-item-label">${lbl}</span>
-      ${isSel ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1b87e6" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>` : ''}
+  const rows = Object.entries(DATA.priorityMap).map(([id, p]) => {
+    const isSel = ticket.priorityId === Number(id);
+    return `<div class="td-picker-row${isSel ? ' selected' : ''}" onclick="setPriority(${id})">
+      ${_priorityFlagSVG(_PRIORITY_COLORS[id], 18)}
+      <span class="td-picker-label">${p.label}</span>
+      ${isSel ? `<span class="td-picker-check">${renderIcon('check', 20)}</span>` : ''}
     </div>`;
   }).join('');
-  _injSheet('td-pri-ov', 'Priority', rows);
+  openSheet('priority', rows, 'Priority');
 };
 
 window.setPriority = function(id) {
-  ticket.priorityId = id;
-  _rmOv('td-pri-ov');
-  showToast('Priority updated to ' + _PRI_LABELS[id], 'success');
-  if (activeTab === 'overview') {
-    document.getElementById('tab-content').innerHTML = getTabContent();
-  }
+  ticket.priorityId = Number(id);
+  closeSheet('priority');
+  document.getElementById('td-priority-card').innerHTML = _priorityCardInnerHTML();
+  showToast('Priority updated to ' + DATA.priorityMap[id].label, 'success');
 };
 
-/* ============================================================
-   Description full sheet
-   ============================================================ */
-window.openDescSheet = function() {
-  _injSheet('td-desc-ov', 'Description',
-    `<div style="padding:16px;font-size:15px;color:#404A5B;font-family:var(--font);line-height:1.6;">${ticket.description}</div>`
-  );
+window.openAssigneeSheet = function() {
+  const rows = DATA.managers.map(m => {
+    const isSel = ticket.assigneeId === m.id;
+    return `<div class="td-picker-row${isSel ? ' selected' : ''}" onclick="setAssignee(${m.id})">
+      ${renderAvatar(m.name, m.avatarColor, 'sm')}
+      <div style="flex:1;min-width:0;">
+        <div class="td-picker-label" style="margin:0;">${m.name}</div>
+        <div class="td-picker-sub">${m.email}</div>
+      </div>
+      ${isSel ? `<span class="td-picker-check">${renderIcon('check', 20)}</span>` : ''}
+    </div>`;
+  }).join('');
+  openSheet('assignee', rows, 'Assign to');
+};
+
+window.setAssignee = function(id) {
+  ticket.assigneeId = id;
+  closeSheet('assignee');
+  document.getElementById('td-assign-card').innerHTML = _assignCardInnerHTML();
+  showToast('Assigned to ' + getManager(id).name, 'success');
 };
 
 /* ============================================================
    Delete confirmation
    ============================================================ */
 window.openDeleteConfirm = function() {
-  _injSheet('td-del-ov', 'Delete ticket',
-    `<div style="padding:16px 20px 24px;text-align:center;">
-      <div style="font-size:40px;margin-bottom:16px;">🗑️</div>
-      <div style="font-size:17px;color:#404A5B;font-family:var(--font);line-height:1.5;margin-bottom:24px;">
-        Are you sure you want to delete <strong>${ticket.id}</strong>? This action cannot be undone.
+  openSheet('delete', `
+    <div style="padding:var(--sp-2) var(--sp-4) var(--sp-5);text-align:center;">
+      <div style="font-size:40px;margin-bottom:var(--sp-3);">🗑️</div>
+      <div style="font-size:var(--text-base);color:var(--text);line-height:1.5;margin-bottom:var(--sp-5);">
+        Are you sure you want to delete <b>${ticket.id}</b>? This action cannot be undone.
       </div>
-      <div style="display:flex;gap:12px;">
-        <button onclick="_rmOv('td-del-ov')"
-          style="flex:1;height:52px;background:#fff;border:1.5px solid #1b87e6;border-radius:8px;
-            color:#1b87e6;font-size:16px;font-family:var(--font);font-weight:600;cursor:pointer;">
-          Cancel
-        </button>
-        <button onclick="confirmDelete()"
-          style="flex:1;height:52px;background:#C82828;border:none;border-radius:8px;
-            color:#fff;font-size:16px;font-family:var(--font);font-weight:600;cursor:pointer;">
-          Delete
-        </button>
+      <div style="display:flex;gap:var(--sp-3);">
+        <div class="btn btn-outline btn-full" onclick="closeSheet('delete')">Cancel</div>
+        <div class="btn btn-danger btn-full" onclick="confirmDelete()">Delete</div>
       </div>
-    </div>`
-  );
+    </div>
+  `, 'Delete ticket');
 };
 
 window.confirmDelete = function() {
-  _rmOv('td-del-ov');
+  closeSheet('delete');
   showToast('Ticket deleted', 'error');
-  setTimeout(() => { window.location.href = 'ticket-list.html'; }, 1500);
+  setTimeout(() => { window.location.href = 'ticket-list.html'; }, 1200);
 };
 
 /* ============================================================
-   Comments tab
+   Root cause — inline card + CRC sheet
    ============================================================ */
-
-// Track which comment IDs have replies expanded
-const _expandedReplies = new Set();
-// Track which comment we're replying to (null = top-level)
-let _replyingTo = null;
-
-function _commentAvatar(initials, bgColor, size) {
-  return `<div style="width:${size}px;height:${size}px;border-radius:${size/2}px;background:${bgColor};
-    display:flex;align-items:center;justify-content:center;flex-shrink:0;
-    font-size:${size<=36?11:13}px;font-weight:700;color:#fff;font-family:var(--font);">
-    ${initials}
-  </div>`;
+function _rootCauseInnerHTML() {
+  const causes = ticket.centralizedRootCauses || [];
+  return `
+    ${causes.length ? `
+      <div class="td-rc-chip-row">
+        ${causes.map(rc => `<span class="td-rc-chip">${rc.tag}</span>`).join('')}
+      </div>
+    ` : `<div style="font-size:var(--text-sm);color:var(--text-light);">No root cause selected yet.</div>`}
+    <div class="td-rc-edit-link" onclick="openRootCauseSheet()">+ Edit root cause</div>
+  `;
 }
 
-function _authorBg(author) {
+function _refreshRootCause() {
+  document.getElementById('td-rootcause-inner').innerHTML = _rootCauseInnerHTML();
+}
+
+window.openRootCauseSheet = function() {
+  openSheet('crc', _crcBodyHTML(), 'Root cause');
+};
+
+function _crcCount(section) {
+  let n = 0;
+  section.items.forEach(item => {
+    if (item.subItems?.length) item.subItems.forEach(s => { if (_crcSelected.has(s.id)) n++; });
+    else if (_crcSelected.has(item.id)) n++;
+  });
+  return n;
+}
+
+function _crcCb(checked) {
+  return `<div class="crc-cb${checked ? ' checked' : ''}">${checked ? renderIcon('check', 13) : ''}</div>`;
+}
+
+function _crcSectionHTML(section) {
+  const isOpen = _crcExpanded.has(section.id);
+  const count = _crcCount(section);
+  return `
+    <div class="crc-section">
+      <div class="crc-section-head" onclick="crcToggleSection('${section.id}')">
+        <span>${section.name} (${count})</span>
+        ${renderIcon(isOpen ? 'chevron_down' : 'chevron_right', 16)}
+      </div>
+      ${isOpen ? section.items.map(_crcItemHTML).join('') : ''}
+    </div>
+  `;
+}
+
+function _crcItemHTML(item) {
+  const hasSubs = item.subItems?.length > 0;
+  const isSel = _crcSelected.has(item.id);
+  if (!hasSubs) {
+    return `
+      <div class="crc-item" onclick="crcToggle('${item.id}')">
+        <div class="crc-item-row">${_crcCb(isSel)}<span style="font-size:var(--text-sm);color:var(--text);">${item.name}</span></div>
+      </div>`;
+  }
+  return `
+    <div class="crc-item">
+      <div class="crc-item-row" onclick="crcToggle('${item.id}')">${_crcCb(isSel)}<span style="font-size:var(--text-sm);color:var(--text);">${item.name}</span></div>
+      ${item.subItems.map(sub => `
+        <div class="crc-sub-row" onclick="crcToggle('${sub.id}')">${_crcCb(_crcSelected.has(sub.id))}<span style="font-size:13px;color:var(--text);">${sub.name}</span></div>
+      `).join('')}
+    </div>`;
+}
+
+function _crcBodyHTML() {
+  const tree = DATA.centralizedRootCauseTree;
+  const active = _crcSelected.size > 0 || _otherChecked;
+  return `
+    <div style="padding-bottom:var(--sp-3);">
+      ${tree.map(_crcSectionHTML).join('')}
+      <div style="display:flex;align-items:center;gap:var(--sp-3);padding:var(--sp-2) 0;">
+        <div class="crc-cb${_otherChecked ? ' checked' : ''}" onclick="crcToggleOther()">${_otherChecked ? renderIcon('check', 13) : ''}</div>
+        <input class="crc-other-input" type="text" placeholder="Other" value="${_otherText}"
+          ${_otherChecked ? '' : 'disabled'} oninput="_otherText=this.value" />
+      </div>
+    </div>
+    <div class="sheet-footer">
+      <div class="btn ${active ? 'btn-primary' : 'btn-disabled btn-secondary'} btn-full" onclick="${active ? 'submitCRC()' : 'void 0'}">Update</div>
+    </div>
+  `;
+}
+
+window.crcToggleSection = function(id) {
+  if (_crcExpanded.has(id)) _crcExpanded.delete(id); else _crcExpanded.add(id);
+  updateSheetBody('crc', _crcBodyHTML());
+};
+window.crcToggle = function(id) {
+  if (_crcSelected.has(id)) _crcSelected.delete(id); else _crcSelected.add(id);
+  updateSheetBody('crc', _crcBodyHTML());
+};
+window.crcToggleOther = function() {
+  _otherChecked = !_otherChecked;
+  if (!_otherChecked) _otherText = '';
+  updateSheetBody('crc', _crcBodyHTML());
+};
+
+window.submitCRC = function() {
+  const tree = DATA.centralizedRootCauseTree;
+  const newCauses = [];
+  tree.forEach(section => {
+    section.items.forEach(item => {
+      if (item.subItems?.length) {
+        item.subItems.forEach(sub => { if (_crcSelected.has(sub.id)) newCauses.push({ path: `${section.name} > ${item.name}`, tag: sub.name }); });
+      } else if (_crcSelected.has(item.id)) {
+        newCauses.push({ path: section.name, tag: item.name });
+      }
+    });
+  });
+  if (_otherChecked && _otherText.trim()) newCauses.push({ path: 'Other', tag: _otherText.trim() });
+  ticket.centralizedRootCauses = newCauses;
+  closeSheet('crc');
+  _refreshRootCause();
+  showToast('Root cause updated', 'success');
+};
+
+/* ============================================================
+   Comments — embedded section
+   ============================================================ */
+function _authorAvatar(author, initials) {
   const mgr = DATA.managers.find(m => m.name === author);
-  if (mgr) return mgr.avatarColor;
-  return '#4A72A8';
+  const color = mgr ? mgr.avatarColor : '#4A72A8';
+  return renderAvatar(author, color, 'sm');
 }
 
-function _renderReplyRows(replies, parentId) {
+function _replyRowsHTML(replies, parentId) {
   if (!replies?.length) return '';
-  const isExpanded = _expandedReplies.has(parentId);
+  const isOpen = _expandedReplies.has(parentId);
   const label = replies.length === 1 ? '1 reply' : `${replies.length} replies`;
-  const chevron = isExpanded
-    ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E9AAD" stroke-width="2" stroke-linecap="round"><polyline points="18 15 12 9 6 15"/></svg>`
-    : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E9AAD" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>`;
-
-  const expanded = isExpanded ? replies.map(r => `
-    <div style="display:flex;gap:10px;margin-top:12px;padding-left:4px;">
-      ${_commentAvatar(r.initials || r.author.slice(0,2).toUpperCase(), _authorBg(r.author), 36)}
+  const expanded = isOpen ? replies.map(r => `
+    <div style="display:flex;gap:var(--sp-2);margin-top:var(--sp-2);padding-left:4px;">
+      ${_authorAvatar(r.author, r.initials)}
       <div style="flex:1;min-width:0;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-          <span style="font-size:14px;font-weight:700;color:#404A5B;font-family:var(--font);">${r.author}</span>
-          <span style="font-size:13px;color:#9B9B9B;font-family:var(--font);">${r.date || r.time || ''}</span>
-        </div>
-        <div style="font-size:14px;color:#545E6B;font-family:var(--font);line-height:1.5;">${r.text}</div>
+        <span style="font-size:13px;font-weight:700;color:var(--text);">${r.author}</span>
+        <span style="font-size:12px;color:var(--text-light);margin-left:6px;">${r.date || r.time || ''}</span>
+        <div style="font-size:13px;color:var(--text);line-height:1.5;">${r.text}</div>
       </div>
     </div>
   `).join('') : '';
-
   return `
-    <div onclick="toggleReplies(${parentId})"
-      style="display:flex;align-items:center;gap:6px;margin-top:8px;cursor:pointer;">
-      <span style="font-size:14px;color:#9B9B9B;font-family:var(--font);">${label}</span>
-      ${chevron}
+    <div onclick="toggleReplies(${parentId})" style="display:flex;align-items:center;gap:6px;margin-top:var(--sp-2);cursor:pointer;">
+      <span style="font-size:13px;color:var(--text-light);">${label}</span>
+      ${renderIcon(isOpen ? 'chevron_down' : 'chevron_right', 14)}
     </div>
-    <div id="replies-${parentId}">
-      ${expanded}
-    </div>
+    <div>${expanded}</div>
   `;
 }
 
-function _renderCommentItem(c) {
-  const initials = c.initials || c.author.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-  const bgColor = _authorBg(c.author);
-  const dateStr = c.date || c.time || '';
-  const replies = c.replies || [];
+function _commentItemHTML(c) {
   const isReplying = _replyingTo === c.id;
-
   return `
-    <div style="padding:16px 16px 12px;border-bottom:1px solid #F0F0F0;">
-      <div style="display:flex;gap:12px;align-items:flex-start;">
-        ${_commentAvatar(initials, bgColor, 44)}
-        <div style="flex:1;min-width:0;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
-            <span style="font-size:15px;font-weight:700;color:#404A5B;font-family:var(--font);">${c.author}</span>
-            <span style="font-size:13px;color:#9B9B9B;font-family:var(--font);">${dateStr}</span>
+    <div class="comment-item">
+      ${_authorAvatar(c.author, c.initials)}
+      <div class="comment-body">
+        <span class="comment-name">${c.author}</span>
+        <span class="comment-time">${c.date || c.time || ''}</span>
+        ${c.isInternal === false ? `<span class="badge" style="background:var(--comment-customer-border);margin-left:6px;">Sent</span>` : ''}
+        <div class="comment-text">${c.text}</div>
+        <div onclick="startReply(${c.id})" style="font-size:13px;color:var(--accent);cursor:pointer;margin-top:4px;">Reply</div>
+        ${_replyRowsHTML(c.replies, c.id)}
+        ${isReplying ? `
+          <div style="display:flex;align-items:center;gap:var(--sp-2);margin-top:var(--sp-2);">
+            ${renderAvatar(DATA.user.name, '#4A72A8', 'sm')}
+            <input type="text" id="reply-text-${c.id}" class="input-field" placeholder="Write a reply…" style="height:36px;font-size:13px;"
+              onkeydown="if(event.key==='Enter') submitReply(${c.id})"/>
           </div>
-          <div style="font-size:15px;color:#404A5B;font-family:var(--font);line-height:1.5;margin-bottom:8px;">${c.text}</div>
-          <div onclick="startReply(${c.id})"
-            style="font-size:14px;color:#1b87e6;font-family:var(--font);cursor:pointer;display:inline-block;">
-            Reply
-          </div>
-          ${_renderReplyRows(replies, c.id)}
-          ${isReplying ? `
-            <div id="reply-input-${c.id}" style="display:flex;align-items:center;gap:8px;margin-top:10px;">
-              ${_commentAvatar(DATA.user.initials, '#4A72A8', 30)}
-              <input type="text" id="reply-text-${c.id}" placeholder="Write a reply…"
-                style="flex:1;border:1px solid #e2e4e8;border-radius:6px;padding:8px 10px;
-                  font-size:14px;color:#404A5B;font-family:var(--font);outline:none;"
-                onkeydown="if(event.key==='Enter') submitReply(${c.id})"/>
-            </div>
-          ` : ''}
-        </div>
+        ` : ''}
       </div>
     </div>
   `;
 }
 
-function renderCommentsTab() {
-  const listHTML = ticket.comments.length === 0
-    ? `<div style="padding:60px 24px;text-align:center;">
-        <div style="font-size:40px;margin-bottom:12px;">💬</div>
-        <div style="font-size:17px;font-weight:600;color:#404A5B;font-family:var(--font);">No comments yet</div>
-        <div style="font-size:14px;color:#9B9B9B;font-family:var(--font);margin-top:6px;">Be the first to add a comment</div>
-      </div>`
-    : ticket.comments.map(_renderCommentItem).join('');
-
-  return `
-    <div id="comments-list" style="flex:1;overflow-y:auto;background:#fff;">
-      ${listHTML}
-    </div>
-    <div style="padding:10px 16px 14px;border-top:1px solid #e8e8e8;background:#fff;flex-shrink:0;">
-      <textarea id="comment-input" placeholder="Write a comment"
-        rows="2"
-        style="width:100%;box-sizing:border-box;border:1px solid #e2e4e8;border-radius:8px;
-          padding:12px 14px;font-size:15px;color:#404A5B;font-family:var(--font);
-          resize:none;outline:none;line-height:1.4;"
-        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitComment();}"></textarea>
-    </div>
-  `;
+function _commentsListHTML() {
+  if (!ticket.comments.length) {
+    return `<div class="empty-state" style="padding:var(--sp-6) 0;"><div class="empty-state-icon">💬</div><div class="empty-state-text">No comments yet</div></div>`;
+  }
+  return ticket.comments.map(_commentItemHTML).join('');
 }
 
-window.toggleReplies = function(parentId) {
-  if (_expandedReplies.has(parentId)) _expandedReplies.delete(parentId);
-  else _expandedReplies.add(parentId);
-  _refreshCommentsList();
-};
+function _refreshComments() { document.getElementById('td-comments-list').innerHTML = _commentsListHTML(); }
 
-window.startReply = function(commentId) {
-  _replyingTo = _replyingTo === commentId ? null : commentId;
-  _refreshCommentsList();
-  setTimeout(() => {
-    const inp = document.getElementById(`reply-text-${commentId}`);
-    if (inp) inp.focus();
-  }, 50);
+window.toggleReplies = function(id) {
+  if (_expandedReplies.has(id)) _expandedReplies.delete(id); else _expandedReplies.add(id);
+  _refreshComments();
 };
-
+window.startReply = function(id) {
+  _replyingTo = _replyingTo === id ? null : id;
+  _refreshComments();
+  setTimeout(() => document.getElementById(`reply-text-${id}`)?.focus(), 50);
+};
 window.submitReply = function(parentId) {
   const inp = document.getElementById(`reply-text-${parentId}`);
   const text = inp?.value?.trim();
   if (!text) return;
   const parent = ticket.comments.find(c => c.id === parentId);
   if (!parent) return;
-  if (!parent.replies) parent.replies = [];
-  parent.replies.push({
-    id: Date.now(),
-    author: DATA.user.name,
-    initials: DATA.user.initials,
-    date: 'just now',
-    text,
-  });
+  parent.replies = parent.replies || [];
+  parent.replies.push({ id: Date.now(), author: DATA.user.name, initials: DATA.user.initials, date: 'just now', text });
   _expandedReplies.add(parentId);
   _replyingTo = null;
-  _refreshCommentsList();
+  _refreshComments();
   showToast('Reply added', 'success');
 };
-
 window.submitComment = function() {
-  const input = document.getElementById('comment-input');
+  const input = document.getElementById('td-comment-input');
   const text = input?.value?.trim();
   if (!text) return;
-  ticket.comments.push({
-    id: ticket.comments.length + 1,
-    author: DATA.user.name,
-    initials: DATA.user.initials,
-    time: 'just now',
-    date: 'just now',
-    text,
-    replies: [],
-  });
+  ticket.comments.push({ id: ticket.comments.length + 1, author: DATA.user.name, initials: DATA.user.initials, time: 'just now', date: 'just now', text, isInternal: true, replies: [] });
   input.value = '';
-  _refreshCommentsList();
+  _refreshComments();
   showToast('Comment added', 'success');
 };
 
-function _refreshCommentsList() {
-  const list = document.getElementById('comments-list');
-  if (!list) return;
-  list.innerHTML = ticket.comments.length === 0
-    ? `<div style="padding:60px 24px;text-align:center;">
-        <div style="font-size:40px;margin-bottom:12px;">💬</div>
-        <div style="font-size:17px;font-weight:600;color:#404A5B;font-family:var(--font);">No comments yet</div>
-      </div>`
-    : ticket.comments.map(_renderCommentItem).join('');
+/* ============================================================
+   Activity — embedded section
+   ============================================================ */
+function _activityColor(type) {
+  return {
+    status: 'var(--activity-status)', priority: 'var(--activity-priority)',
+    comment: 'var(--activity-comment)', email: 'var(--activity-email)', create: 'var(--activity-create)',
+  }[type] || 'var(--activity-create)';
 }
 
-/* ============================================================
-   Activity tab
-   ============================================================ */
-let _actSort = 'latest'; // 'latest' | 'oldest'
-let _actDropOpen = false;
-
-function renderActivityTab() {
-  const list = _actSort === 'latest'
-    ? [...ticket.activity]
-    : [...ticket.activity].reverse();
-
-  const chevronUp = `<svg width="10" height="10" viewBox="0 0 24 24" fill="#404A5B"><polygon points="12,4 22,20 2,20"/></svg>`;
-  const chevronDn = `<svg width="10" height="10" viewBox="0 0 24 24" fill="#404A5B"><polygon points="12,20 2,4 22,4"/></svg>`;
-  const sortLabel = _actSort === 'latest' ? 'Latest' : 'Oldest';
-  const sortIcon  = _actSort === 'latest' ? chevronUp : chevronDn;
-
+function _activityInnerHTML() {
+  const list = _actSort === 'latest' ? [...ticket.activity] : [...ticket.activity].reverse();
   return `
-    <div style="flex:1;overflow-y:auto;background:#fff;">
-      <!-- Sort dropdown -->
-      <div style="padding:12px 14px 6px;position:relative;">
-        <div onclick="toggleActSort()"
-          style="display:inline-flex;align-items:center;gap:8px;
-            border:1px solid #d0d3d8;border-radius:4px;padding:8px 14px;
-            cursor:pointer;background:#fff;min-width:120px;justify-content:space-between;">
-          <span style="font-size:15px;color:#404A5B;font-family:var(--font);">${sortLabel}</span>
-          ${sortIcon}
-        </div>
-        ${_actDropOpen ? `
-          <div style="position:absolute;top:52px;left:14px;z-index:50;
-            background:#fff;border:1px solid #e2e4e8;border-radius:4px;
-            box-shadow:0 4px 12px rgba(0,0,0,0.10);min-width:120px;">
-            ${['latest','oldest'].map(opt => `
-              <div onclick="setActSort('${opt}')"
-                style="padding:12px 16px;font-size:15px;font-family:var(--font);cursor:pointer;
-                  color:${_actSort===opt?'#1b87e6':'#404A5B'};
-                  font-weight:${_actSort===opt?'600':'400'};
-                  background:${_actSort===opt?'#EEF3FB':'#fff'};">
-                ${opt.charAt(0).toUpperCase()+opt.slice(1)}
-              </div>`).join('')}
-          </div>
-        ` : ''}
-      </div>
-
-      <!-- Activity items -->
-      <div style="padding:0 14px 16px;">
-        ${list.map(a => `
-          <div style="background:#fff;border:1px solid #e8e8e8;border-radius:6px;
-            padding:14px 16px;margin-bottom:10px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-              <span style="font-size:15px;font-weight:700;color:#1b87e6;font-family:var(--font);">${a.actor}</span>
-              <span style="font-size:13px;color:#8E9AAD;font-family:var(--font);">${a.date || a.time || ''}</span>
-            </div>
-            <div style="font-size:14px;color:#545E6B;font-family:var(--font);line-height:1.5;">${a.text}</div>
-          </div>
-        `).join('')}
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:var(--sp-3) var(--sp-4) var(--sp-1);">
+      <span class="section-heading" style="padding:0;">Activity</span>
+      <div onclick="toggleActSort()" style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;color:var(--text-light);font-weight:600;">
+        ${_actSort === 'latest' ? 'Latest' : 'Oldest'} ${renderIcon('chevron_down', 14)}
       </div>
     </div>
-  `;
-}
-
-window.toggleActSort = function() {
-  _actDropOpen = !_actDropOpen;
-  document.getElementById('tab-content').innerHTML = getTabContent();
-};
-
-window.setActSort = function(val) {
-  _actSort = val;
-  _actDropOpen = false;
-  document.getElementById('tab-content').innerHTML = getTabContent();
-};
-
-/* ============================================================
-   Root cause tab
-   ============================================================ */
-function renderRootCauseTab() {
-  const causes = ticket.centralizedRootCauses || [];
-
-  return `
-    <div style="flex:1;overflow-y:auto;background:#fff;padding:20px 16px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
-        <span style="font-size:20px;font-weight:700;color:#404A5B;font-family:var(--font);">Custom root causes</span>
-        <div onclick="openCRC()"
-          style="display:flex;align-items:center;gap:5px;cursor:pointer;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1b87e6" stroke-width="2" stroke-linecap="round">
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-          </svg>
-          <span style="font-size:16px;color:#1b87e6;font-family:var(--font);font-weight:500;">Edit</span>
-        </div>
-      </div>
-
-      ${causes.length === 0 ? `
-        <div style="padding:40px 0;text-align:center;">
-          <div style="font-size:14px;color:#9B9B9B;font-family:var(--font);">No root causes selected yet.</div>
-          <div onclick="openCRC()" style="font-size:14px;color:#1b87e6;font-family:var(--font);cursor:pointer;margin-top:8px;">
-            + Add root cause
-          </div>
-        </div>
-      ` : causes.map(rc => `
-        <div style="margin-bottom:16px;">
-          <div style="font-size:13px;color:#8E9AAD;font-family:var(--font);margin-bottom:8px;">${rc.path}</div>
-          <div style="display:inline-flex;align-items:center;
-            background:#F0F0F0;border:1px solid #e0e0e0;border-radius:4px;
-            padding:8px 14px;font-size:15px;color:#404A5B;font-family:var(--font);">
-            ${rc.tag}
+    <div style="padding:0 var(--sp-4);">
+      ${list.map(a => `
+        <div class="activity-item" style="padding:var(--sp-2) 0;">
+          <div class="activity-dot-col"><div class="activity-dot" style="background:${_activityColor(a.type)};"></div></div>
+          <div class="activity-content">
+            <div class="activity-title">${a.text.replace(/<\/?b>/g, '')}</div>
+            <div class="activity-meta">${a.actor} · ${a.date || a.time || ''}</div>
           </div>
         </div>
       `).join('')}
@@ -701,211 +662,42 @@ function renderRootCauseTab() {
   `;
 }
 
+window.toggleActSort = function() {
+  _actSort = _actSort === 'latest' ? 'oldest' : 'latest';
+  document.getElementById('td-activity-inner').innerHTML = _activityInnerHTML();
+};
 
 /* ============================================================
-   CRC screen (Centralized Root Cause)
+   Jump-nav scroll + active-chip tracking
    ============================================================ */
-const _crcExpanded = new Set();
-const _crcSelected = new Set();
-let _otherChecked  = false;
-let _otherText     = '';
-
-function _crcSectionCount(section) {
-  let n = 0;
-  section.items.forEach(item => {
-    if (item.subItems?.length) {
-      item.subItems.forEach(sub => { if (_crcSelected.has(sub.id)) n++; });
-    } else {
-      if (_crcSelected.has(item.id)) n++;
-    }
-  });
-  return n;
-}
-
-function _crcCb(id, checked) {
-  const base = `width:22px;height:22px;border-radius:4px;flex-shrink:0;
-    display:flex;align-items:center;justify-content:center;`;
-  return checked
-    ? `<div style="${base}background:#1b87e6;border:2px solid #1b87e6;">
-         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round">
-           <polyline points="20 6 9 17 4 12"/>
-         </svg>
-       </div>`
-    : `<div style="${base}border:2px solid #A2A6A9;"></div>`;
-}
-
-function _crcChevDown() {
-  return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#545E6B" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>`;
-}
-function _crcChevUp() {
-  return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#545E6B" stroke-width="2.5" stroke-linecap="round"><polyline points="18 15 12 9 6 15"/></svg>`;
-}
-
-function _crcRenderSection(section) {
-  const isOpen = _crcExpanded.has(section.id);
-  const count  = _crcSectionCount(section);
-  return `
-    <div style="margin-bottom:4px;">
-      <div onclick="crcToggleSection('${section.id}')"
-        style="display:flex;align-items:center;background:#F5F5F5;
-          border:1px solid #e8e8e8;border-radius:6px;height:56px;
-          padding:0 16px;cursor:pointer;user-select:none;margin-bottom:10px;">
-        <span style="flex:1;font-size:16px;color:#545E6B;font-family:var(--font);">
-          ${section.name} (${count})
-        </span>
-        ${isOpen ? _crcChevUp() : _crcChevDown()}
-      </div>
-      ${isOpen ? `<div style="padding:0 0 6px;">${section.items.map(item => _crcRenderItem(item)).join('')}</div>` : ''}
-    </div>
-  `;
-}
-
-function _crcRenderItem(item) {
-  const hasSubs = item.subItems?.length > 0;
-  const isSel   = _crcSelected.has(item.id);
-  if (!hasSubs) {
-    return `
-      <div onclick="crcToggleItem('${item.id}')"
-        style="background:#fff;border:1px solid #e8e8e8;border-radius:6px;
-          padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;gap:14px;cursor:pointer;">
-        ${_crcCb(item.id, isSel)}
-        <span style="font-size:16px;color:#545E6B;font-family:var(--font);">${item.name}</span>
-      </div>`;
-  }
-  return `
-    <div style="background:#fff;border:1px solid #e8e8e8;border-radius:6px;padding:14px 16px;margin-bottom:8px;">
-      <div onclick="crcToggleItem('${item.id}')"
-        style="display:flex;align-items:center;gap:14px;cursor:pointer;margin-bottom:2px;">
-        ${_crcCb(item.id, isSel)}
-        <span style="font-size:16px;color:#545E6B;font-family:var(--font);">${item.name}</span>
-      </div>
-      <div style="padding-left:20px;margin-top:6px;">
-        ${item.subItems.map(sub => {
-          const subSel = _crcSelected.has(sub.id);
-          return `
-            <div onclick="crcToggleSubItem('${sub.id}')"
-              style="display:flex;align-items:center;gap:14px;
-                padding:10px 0;border-top:1px solid #f0f0f0;cursor:pointer;">
-              ${_crcCb(sub.id, subSel)}
-              <span style="font-size:15px;color:#545E6B;font-family:var(--font);">${sub.name}</span>
-            </div>`;
-        }).join('')}
-      </div>
-    </div>`;
-}
-
-function renderCRCScreen() {
-  const tree   = DATA.centralizedRootCauseTree;
-  const active = _crcSelected.size > 0 || _otherChecked;
-  return `
-    <div class="screen-content">
-      <!-- Header -->
-      <div style="background:#fff;border-bottom:1px solid #d8d8d8;display:flex;align-items:center;padding:0 16px;height:56px;flex-shrink:0;">
-        <button onclick="closeCRC()"
-          style="background:none;border:none;cursor:pointer;color:#404A5B;display:flex;align-items:center;padding:4px;margin-right:8px;">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#404A5B" stroke-width="2.5" stroke-linecap="round">
-            <polyline points="15 18 9 12 15 6"/>
-          </svg>
-        </button>
-        <span style="flex:1;text-align:center;font-size:18px;font-weight:700;color:#404A5B;font-family:var(--font);">Centralized Root Cause</span>
-        <div style="width:30px;"></div>
-      </div>
-
-      <!-- Body -->
-      <div style="flex:1;overflow-y:auto;background:#fff;padding:16px;">
-        ${tree.map(s => _crcRenderSection(s)).join('')}
-        <!-- Other row -->
-        <div style="display:flex;align-items:center;gap:14px;padding:8px 0;">
-          <div onclick="crcToggleOther()" style="cursor:pointer;">${_crcCb('other', _otherChecked)}</div>
-          <input id="crc-other-input" type="text" placeholder="Other"
-            value="${_otherText}"
-            ${_otherChecked ? '' : 'disabled'}
-            oninput="_otherText=this.value"
-            style="flex:1;background:#F5F5F5;border:none;border-bottom:1px solid #e8e8e8;
-              padding:10px 12px;font-size:16px;font-family:var(--font);
-              color:${_otherChecked?'#404A5B':'#9B9B9B'};outline:none;border-radius:4px 4px 0 0;"/>
-        </div>
-      </div>
-
-      <!-- Update button -->
-      <div style="padding:12px 16px 20px;background:#fff;border-top:1px solid #f0f0f0;flex-shrink:0;">
-        <button onclick="${active?'submitCRC()':'void 0'}"
-          style="width:100%;height:56px;border:none;border-radius:8px;
-            cursor:${active?'pointer':'default'};
-            background:${active?'#1b87e6':'#E8E8E8'};
-            color:${active?'#fff':'#A0A0A0'};
-            font-size:17px;font-family:var(--font);font-weight:600;">
-          Update
-        </button>
-      </div>
-    </div>
-  `;
-}
-
-window.openCRC = function() {
-  _screen = 'crc';
-  document.body.innerHTML = renderPhoneShell(renderCRCScreen());
+window.jumpTo = function(id) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
 
-window.closeCRC = function() {
-  _screen = 'detail';
-  document.body.innerHTML = renderPhoneShell(renderDetail());
-};
+function _initJumpNavObserver() {
+  const body = document.getElementById('td-body');
+  const chips = document.getElementById('td-jumpnav');
+  if (!body || !chips) return;
+  const sections = ['sec-top', 'sec-comments', 'sec-activity', 'sec-rootcause']
+    .map(id => document.getElementById(id)).filter(Boolean);
 
-window.crcToggleSection = function(id) {
-  if (_crcExpanded.has(id)) _crcExpanded.delete(id); else _crcExpanded.add(id);
-  document.body.innerHTML = renderPhoneShell(renderCRCScreen());
-};
-
-window.crcToggleItem = function(id) {
-  if (_crcSelected.has(id)) _crcSelected.delete(id); else _crcSelected.add(id);
-  document.body.innerHTML = renderPhoneShell(renderCRCScreen());
-};
-
-window.crcToggleSubItem = function(id) {
-  if (_crcSelected.has(id)) _crcSelected.delete(id); else _crcSelected.add(id);
-  document.body.innerHTML = renderPhoneShell(renderCRCScreen());
-};
-
-window.crcToggleOther = function() {
-  _otherChecked = !_otherChecked;
-  if (!_otherChecked) _otherText = '';
-  document.body.innerHTML = renderPhoneShell(renderCRCScreen());
-};
-
-window.submitCRC = function() {
-  // Build centralizedRootCauses from selections
-  const tree = DATA.centralizedRootCauseTree;
-  const newCauses = [];
-  tree.forEach(section => {
-    section.items.forEach(item => {
-      if (item.subItems?.length) {
-        item.subItems.forEach(sub => {
-          if (_crcSelected.has(sub.id)) {
-            newCauses.push({ path: `${section.name} > ${item.name}`, tag: sub.name });
-          }
-        });
-      } else {
-        if (_crcSelected.has(item.id)) {
-          newCauses.push({ path: section.name, tag: item.name });
-        }
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        chips.querySelectorAll('.td-chip').forEach(c => c.classList.remove('active'));
+        chips.querySelector(`[data-target="${entry.target.id}"]`)?.classList.add('active');
       }
     });
-  });
-  if (_otherChecked && _otherText.trim()) {
-    newCauses.push({ path: 'Other', tag: _otherText.trim() });
-  }
-  ticket.centralizedRootCauses = newCauses;
-  showToast('Root cause updated', 'success');
-  _screen = 'detail';
-  activeTab = 'rootcause';
-  document.body.innerHTML = renderPhoneShell(renderDetail());
-};
+  }, { root: body, rootMargin: '-10% 0px -70% 0px', threshold: 0 });
+
+  sections.forEach(s => observer.observe(s));
+}
 
 /* ============================================================
    Init
    ============================================================ */
 document.body.innerHTML = renderPhoneShell(renderDetail());
+_initJumpNavObserver();
 
 </script>
 </body>

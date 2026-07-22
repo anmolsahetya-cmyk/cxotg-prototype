@@ -19,7 +19,8 @@ index.html              ← Hub: links to all flows
 marketing.html          ← Onboarding carousel + Login + Forgot Password
 dashboard.html          ← Dashboard (NPS/CSAT charts, segment selector, date filter)
 ticket-list.html        ← Ticket list + search + filter sheet + AI tags
-ticket-detail.html      ← Ticket detail (Overview, Comments, Activity log, Root cause tabs)
+ticket-detail.html      ← Ticket detail (unified scroll — jump-nav, inline status/priority/root cause cards)
+ticket-detail-legacy.html ← Pre-revamp ticket detail (4 tabs), kept for reference
 send-email.html         ← Email composer + AI draft + template selector
 create-ticket.html      ← Create Ticket form + picker sheets
 notifications.html      ← Notification list

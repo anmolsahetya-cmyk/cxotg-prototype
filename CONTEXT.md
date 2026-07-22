@@ -5,17 +5,20 @@ precise. It is a glossary, not a spec — implementation details belong in code 
 
 ## Ticket Details flow
 
-The set of screens reached after opening a single ticket from the ticket list. Comprises:
+The set of screens reached after opening a single ticket from the ticket list. As of the
+"Unified Scroll" revamp (branch `ticket_details_revamp`), comprises:
 
-- **Ticket Detail shell** (`ticket-detail.html`) — header + 4 tabs: Overview, Comments,
-  Activity log, Root cause.
-- **Overview tab overlays** — Status sheet, Priority sheet, Description sheet, Delete
-  confirmation (all rendered as inline bottom-sheet overlays within `ticket-detail.html`).
-- **CRC screen** (Centralized Root Cause) — a full-screen picker reached from the Root cause
-  tab's "Edit" action, for selecting a ticket's root cause from a nested category tree.
+- **Ticket Detail shell** (`ticket-detail.html`) — single scrolling page (no tabs), navigated
+  via a sticky jump-nav chip row (Overview / Comments / Activity / Root cause) with
+  scroll-linked active-chip highlighting. Status, Priority, and Assigned To are tappable cards
+  that open bottom sheets. Root cause is an inline card whose "Edit" action opens the CRC tree
+  as a bottom sheet (not a separate screen).
+- **`ticket-detail-legacy.html`** — the pre-revamp version (4-tab structure: Overview, Comments,
+  Activity log, Root cause; CRC as its own full-screen picker). Kept for reference, linked from
+  the hub page (`index.html`) under "Reference," not part of the live flow.
 
-Explicitly **out of scope**: `send-email.html` (the "Respond via email" action is a handoff
-point out of this flow, not part of it).
+Explicitly **out of scope**: `send-email.html` (the "Respond via email" / Email quick action is
+a handoff point out of this flow, not part of it).
 
 ## Design tokens
 
@@ -30,9 +33,10 @@ a value the system doesn't yet have.
 ## CRC (Centralized Root Cause)
 
 A nested category tree (section → item → sub-item) used to tag a ticket with one or more
-standardized root causes, distinct from the free-text/legacy `rootCauses` field. Currently
-implemented as its own full-screen picker (`renderCRCScreen()`) reached from the Root cause
-tab's "Edit" action — conceptually it's a field on the ticket, not a separate object.
+standardized root causes, distinct from the free-text/legacy `rootCauses` field. In the live
+`ticket-detail.html`, it's a bottom sheet opened from the inline Root Cause card's "Edit"
+action — conceptually a field on the ticket, not a separate screen. `ticket-detail-legacy.html`
+still implements it as its own full-screen picker (`renderCRCScreen()`).
 
 ## Detractor ticket
 
