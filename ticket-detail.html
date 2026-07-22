@@ -11,7 +11,7 @@
       padding: 0 var(--sp-4); height: 52px; background: var(--bg-card);
       border-bottom: 1px solid var(--border); flex-shrink: 0;
     }
-    .td-header-title { flex: 1; text-align: center; font-size: var(--text-lg); font-weight: 700; color: var(--text); }
+    .td-header-title { flex: 1; display: flex; align-items: center; justify-content: center; gap: 2px; font-size: var(--text-lg); font-weight: 700; color: var(--text); }
     .td-jumpnav {
       display: flex; gap: var(--sp-2); padding: var(--sp-2) var(--sp-4);
       overflow-x: auto; background: var(--bg-card); border-bottom: 1px solid var(--divider); flex-shrink: 0;
@@ -27,7 +27,7 @@
     /* ----- NPS / detractor banner ----- */
     .td-nps-banner { display: flex; align-items: center; gap: var(--sp-3); margin: var(--sp-3) var(--sp-4) 0; padding: var(--sp-3); border-radius: var(--radius); background: rgba(248,82,113,0.08); border: 1px solid rgba(248,82,113,0.35); }
     .td-nps-score { width: 36px; height: 36px; border-radius: var(--radius); background: var(--detractor); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; flex-shrink: 0; }
-    .td-nps-copy { font-size: var(--text-sm); color: var(--text); line-height: 1.4; }
+    .td-nps-copy { flex: 1; min-width: 0; font-size: var(--text-sm); color: var(--text); line-height: 1.4; }
     .td-nps-copy b { color: var(--error); }
 
     /* ----- Customer card ----- */
@@ -92,8 +92,17 @@
     .td-more-row { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); cursor: pointer; }
     .td-more-row:active { background: var(--bg-selection); }
 
-    /* ----- Add comment box ----- */
+    /* ----- Add comment box (inside Comments sheet) ----- */
     .td-add-comment { padding: var(--sp-2) var(--sp-4) var(--sp-4); }
+
+    /* ----- Comments / Activity inline summary cards ----- */
+    .td-summary-card { margin: var(--sp-2) var(--sp-4); padding: var(--sp-2) var(--sp-4) 0; cursor: pointer; transition: background 120ms; }
+    .td-summary-card:active { background: var(--bg-selection); }
+    .td-summary-viewall {
+      display: flex; align-items: center; gap: 4px; justify-content: center;
+      padding: var(--sp-3) 0; margin-top: var(--sp-1); border-top: 1px solid var(--divider);
+      font-size: 13px; font-weight: 600; color: var(--accent);
+    }
   </style>
 </head>
 <body>
@@ -120,21 +129,18 @@ let _otherChecked = false;
 let _otherText = '';
 
 /* ============================================================
-   Snooze helpers (matches dashboard.html's Quick Action snooze)
+   Clipboard helper
    ============================================================ */
-function getSnoozeDays() {
-  const v = parseInt(localStorage.getItem('snoozeDays'), 10);
-  return (v >= 1 && v <= 7) ? v : 1;
+function _copyToClipboard(text, message) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).catch(() => {});
+  }
+  showToast(message, 'success');
 }
-function _getSnoozeMap() {
-  try { return JSON.parse(localStorage.getItem('ticketSnoozes')) || {}; }
-  catch (e) { return {}; }
-}
-function _snoozeTicket(id) {
-  const map = _getSnoozeMap();
-  map[id] = Date.now() + getSnoozeDays() * 24 * 60 * 60 * 1000;
-  localStorage.setItem('ticketSnoozes', JSON.stringify(map));
-}
+
+window.copyTicketId = function() {
+  _copyToClipboard(ticket.id, 'Ticket ID copied to clipboard');
+};
 
 /* ============================================================
    Main render
@@ -149,7 +155,12 @@ function renderDetail() {
         <button class="icon-btn" onclick="window.history.length>1?window.history.back():window.location.href='ticket-list.html'">
           ${renderIcon('back', 22)}
         </button>
-        <span class="td-header-title">Ticket #${ticket.id.replace('TKT-', '')}</span>
+        <div class="td-header-title">
+          <span>Ticket #${ticket.id.replace('TKT-', '')}</span>
+          <button class="icon-btn" style="width:28px;height:28px;" onclick="copyTicketId()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
+        </div>
         <button class="icon-btn" onclick="openMoreSheet()">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
         </button>
@@ -157,9 +168,9 @@ function renderDetail() {
 
       <div class="td-jumpnav" id="td-jumpnav">
         <div class="td-chip active" data-target="sec-top" onclick="jumpTo('sec-top')">Overview</div>
+        <div class="td-chip" data-target="sec-rootcause" onclick="jumpTo('sec-rootcause')">Root cause</div>
         <div class="td-chip" data-target="sec-comments" onclick="jumpTo('sec-comments')">Comments</div>
         <div class="td-chip" data-target="sec-activity" onclick="jumpTo('sec-activity')">Activity</div>
-        <div class="td-chip" data-target="sec-rootcause" onclick="jumpTo('sec-rootcause')">Root cause</div>
       </div>
 
       <div class="screen-body" id="td-body" style="background:var(--bg-page);">
@@ -218,17 +229,12 @@ function renderDetail() {
 
         <div id="sec-comments">
           <div class="section-heading">Comments</div>
-          <div id="td-comments-list">${_commentsListHTML()}</div>
-          <div class="td-add-comment">
-            <textarea id="td-comment-input" class="input-field" placeholder="Write a comment" rows="2"
-              style="resize:none;"
-              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitComment();}"></textarea>
-            <button class="btn btn-primary btn-sm" style="margin-top:var(--sp-2);" onclick="submitComment()">Post comment</button>
-          </div>
+          <div id="td-comments-summary">${_commentsSummaryHTML()}</div>
         </div>
 
         <div id="sec-activity">
-          <div id="td-activity-inner">${_activityInnerHTML()}</div>
+          <div class="section-heading">Activity</div>
+          <div id="td-activity-summary">${_activitySummaryHTML()}</div>
         </div>
 
         <div style="height:var(--sp-6);"></div>
@@ -238,20 +244,19 @@ function renderDetail() {
 }
 
 /* ============================================================
-   More sheet (Snooze, Delete)
+   More sheet (Share, Delete)
    ============================================================ */
-window.onSnoozeTicket = function() {
+window.onShareTicket = function() {
   closeSheet('more');
-  _snoozeTicket(ticket.id);
-  const days = getSnoozeDays();
-  showToast(`Snoozed for ${days} day${days === 1 ? '' : 's'}`, 'success');
+  const link = `${location.origin}${location.pathname}?id=${ticket.id}`;
+  _copyToClipboard(link, 'Ticket link copied to clipboard');
 };
 
 window.openMoreSheet = function() {
   openSheet('more', `
-    <div class="td-more-row" onclick="onSnoozeTicket()">
-      ${renderIcon('history', 20)}
-      <span style="font-size:var(--text-base);font-weight:600;color:var(--text);">Snooze ticket</span>
+    <div class="td-more-row" onclick="onShareTicket()">
+      ${renderIcon('send', 20)}
+      <span style="font-size:var(--text-base);font-weight:600;color:var(--text);">Share ticket</span>
     </div>
     <div class="td-more-row" style="color:var(--error);" onclick="closeSheet('more');openDeleteConfirm();">
       ${renderIcon('trash', 20)}
@@ -261,7 +266,8 @@ window.openMoreSheet = function() {
 };
 
 /* ============================================================
-   NPS / detractor banner
+   NPS / detractor banner (Detractor tickets only — links to the
+   future Response window)
    ============================================================ */
 function _renderNpsBanner() {
   if (ticket.npsLabel !== 'Detractor') return '';
@@ -269,12 +275,17 @@ function _renderNpsBanner() {
     ? `"${ticket.npsVerbatim}"`
     : `This ticket originated from a detractor survey response.`;
   return `
-    <div class="td-nps-banner">
+    <div class="td-nps-banner" onclick="openResponseWindow()" style="cursor:pointer;">
       <div class="td-nps-score">${ticket.npsScore}</div>
       <div class="td-nps-copy"><b>Detractor</b> — ${quote}</div>
+      <span style="color:var(--error);flex-shrink:0;">${renderIcon('chevron_right', 18)}</span>
     </div>
   `;
 }
+
+window.openResponseWindow = function() {
+  showToast('Response window coming soon', 'info');
+};
 
 /* ============================================================
    Status / Priority / Assignee — field cards + sheets
@@ -595,7 +606,66 @@ function _commentsListHTML() {
   return ticket.comments.map(_commentItemHTML).join('');
 }
 
-function _refreshComments() { document.getElementById('td-comments-list').innerHTML = _commentsListHTML(); }
+/* ----- Inline summary card (main page) — last comment/reply only ----- */
+function _latestCommentEntry() {
+  if (!ticket.comments.length) return null;
+  const last = ticket.comments[ticket.comments.length - 1];
+  if (last.replies?.length) {
+    const reply = last.replies[last.replies.length - 1];
+    return { author: reply.author, initials: reply.initials, text: reply.text, time: reply.date || reply.time };
+  }
+  return { author: last.author, initials: last.initials, text: last.text, time: last.date || last.time };
+}
+
+function _commentsSummaryHTML() {
+  const entry = _latestCommentEntry();
+  const count = ticket.comments.length;
+  if (!entry) {
+    return `
+      <div class="card td-summary-card" onclick="openCommentsSheet()">
+        <div class="empty-state" style="padding:var(--sp-4) 0;">
+          <div class="empty-state-icon" style="font-size:28px;">💬</div>
+          <div class="empty-state-text" style="font-size:var(--text-sm);">No comments yet — tap to add one</div>
+        </div>
+      </div>`;
+  }
+  return `
+    <div class="card td-summary-card" onclick="openCommentsSheet()">
+      <div class="comment-item" style="border:none;padding:0 0 var(--sp-2);">
+        ${_authorAvatar(entry.author, entry.initials)}
+        <div class="comment-body">
+          <span class="comment-name">${entry.author}</span>
+          <span class="comment-time">${entry.time || ''}</span>
+          <div class="comment-text">${entry.text}</div>
+        </div>
+      </div>
+      <div class="td-summary-viewall">View all ${count} comment${count === 1 ? '' : 's'} ${renderIcon('chevron_right', 15)}</div>
+    </div>`;
+}
+
+function _refreshComments() {
+  const list = document.getElementById('td-comments-list');
+  if (list) list.innerHTML = _commentsListHTML();
+  const summary = document.getElementById('td-comments-summary');
+  if (summary) summary.innerHTML = _commentsSummaryHTML();
+}
+
+/* ----- Dedicated Comments bottom sheet ----- */
+window.openCommentsSheet = function() {
+  openSheet('comments', _commentsSheetBodyHTML(), 'Comments');
+};
+
+function _commentsSheetBodyHTML() {
+  return `
+    <div id="td-comments-list">${_commentsListHTML()}</div>
+    <div class="td-add-comment">
+      <textarea id="td-comment-input" class="input-field" placeholder="Write a comment" rows="2"
+        style="resize:none;"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitComment();}"></textarea>
+      <button class="btn btn-primary btn-sm" style="margin-top:var(--sp-2);" onclick="submitComment()">Post comment</button>
+    </div>
+  `;
+}
 
 window.toggleReplies = function(id) {
   if (_expandedReplies.has(id)) _expandedReplies.delete(id); else _expandedReplies.add(id);
@@ -639,32 +709,51 @@ function _activityColor(type) {
   }[type] || 'var(--activity-create)';
 }
 
-function _activityInnerHTML() {
+function _activityRowHTML(a) {
+  return `
+    <div class="activity-item" style="padding:var(--sp-2) 0;">
+      <div class="activity-dot-col"><div class="activity-dot" style="background:${_activityColor(a.type)};"></div></div>
+      <div class="activity-content">
+        <div class="activity-title">${a.text.replace(/<\/?b>/g, '')}</div>
+        <div class="activity-meta">${a.actor} · ${a.date || a.time || ''}</div>
+      </div>
+    </div>
+  `;
+}
+
+/* ----- Inline summary card (main page) — latest 2 events only ----- */
+function _activitySummaryHTML() {
+  const latest = ticket.activity.slice(0, 2);
+  const count = ticket.activity.length;
+  return `
+    <div class="card td-summary-card" onclick="openActivitySheet()" style="padding:var(--sp-1) var(--sp-4) 0;">
+      ${latest.map(_activityRowHTML).join('')}
+      <div class="td-summary-viewall">Show all ${count} activit${count === 1 ? 'y' : 'ies'} ${renderIcon('chevron_right', 15)}</div>
+    </div>`;
+}
+
+/* ----- Dedicated Activity bottom sheet (full list + sort) ----- */
+window.openActivitySheet = function() {
+  openSheet('activity', _activitySheetBodyHTML(), 'Activity');
+};
+
+function _activitySheetBodyHTML() {
   const list = _actSort === 'latest' ? [...ticket.activity] : [...ticket.activity].reverse();
   return `
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:var(--sp-3) var(--sp-4) var(--sp-1);">
-      <span class="section-heading" style="padding:0;">Activity</span>
+    <div style="display:flex;justify-content:flex-end;padding:var(--sp-2) var(--sp-4);">
       <div onclick="toggleActSort()" style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;color:var(--text-light);font-weight:600;">
         ${_actSort === 'latest' ? 'Latest' : 'Oldest'} ${renderIcon('chevron_down', 14)}
       </div>
     </div>
     <div style="padding:0 var(--sp-4);">
-      ${list.map(a => `
-        <div class="activity-item" style="padding:var(--sp-2) 0;">
-          <div class="activity-dot-col"><div class="activity-dot" style="background:${_activityColor(a.type)};"></div></div>
-          <div class="activity-content">
-            <div class="activity-title">${a.text.replace(/<\/?b>/g, '')}</div>
-            <div class="activity-meta">${a.actor} · ${a.date || a.time || ''}</div>
-          </div>
-        </div>
-      `).join('')}
+      ${list.map(_activityRowHTML).join('')}
     </div>
   `;
 }
 
 window.toggleActSort = function() {
   _actSort = _actSort === 'latest' ? 'oldest' : 'latest';
-  document.getElementById('td-activity-inner').innerHTML = _activityInnerHTML();
+  updateSheetBody('activity', _activitySheetBodyHTML());
 };
 
 /* ============================================================
@@ -678,7 +767,7 @@ function _initJumpNavObserver() {
   const body = document.getElementById('td-body');
   const chips = document.getElementById('td-jumpnav');
   if (!body || !chips) return;
-  const sections = ['sec-top', 'sec-comments', 'sec-activity', 'sec-rootcause']
+  const sections = ['sec-top', 'sec-rootcause', 'sec-comments', 'sec-activity']
     .map(id => document.getElementById(id)).filter(Boolean);
 
   const observer = new IntersectionObserver((entries) => {
