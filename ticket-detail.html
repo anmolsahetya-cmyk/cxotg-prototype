@@ -73,6 +73,17 @@
     .td-picker-sub { font-size: 12px; color: var(--text-light); margin-top: 1px; }
     .td-picker-check { color: var(--accent); flex-shrink: 0; display: flex; }
 
+    /* ----- AI tag buttons ----- */
+    .td-ai-tag-label { font-size: 11px; font-weight: 700; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.4px; margin-top: var(--sp-3); margin-bottom: var(--sp-2); }
+    .td-ai-tag-wrap { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+    .td-ai-tag-chip {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: var(--accent-bg); border: 1px solid rgba(27,135,230,0.35); color: var(--accent);
+      border-radius: var(--radius-sm); padding: 7px 12px; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: background 120ms;
+    }
+    .td-ai-tag-chip:active { background: rgba(27,135,230,0.25); }
+
     /* ----- Root cause inline card ----- */
     .td-rc-chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: var(--sp-2); }
     .td-rc-chip { background: var(--bg-selection); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 10px; font-size: 12px; color: var(--text); }
@@ -87,6 +98,17 @@
     .crc-cb { width: 20px; height: 20px; border-radius: 4px; border: 2px solid var(--border-2); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
     .crc-cb.checked { background: var(--accent); border-color: var(--accent); }
     .crc-other-input { flex: 1; border: none; border-bottom: 1.5px solid var(--border); background: var(--bg-selection); padding: var(--sp-2) var(--sp-3); font-size: var(--text-base); font-family: var(--font); outline: none; border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
+
+    /* ----- Share ticket preview ----- */
+    .td-share-preview { margin: var(--sp-2) var(--sp-4) 0; padding: var(--sp-4); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+    .td-share-row-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--sp-3); }
+    .td-share-title { font-size: 20px; font-weight: 700; color: var(--text); }
+    .td-share-field { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; font-size: var(--text-sm); color: var(--text-light); }
+    .td-share-value { display: flex; align-items: center; gap: 6px; color: var(--text); font-weight: 600; }
+    .td-share-desc-label { font-size: var(--text-sm); color: var(--text-light); margin-top: var(--sp-2); }
+    .td-share-desc { font-size: var(--text-sm); color: var(--text); line-height: 1.5; margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+    .td-share-divider { height: 1px; background: var(--divider); margin: var(--sp-3) 0; }
+    .td-share-footer { font-size: 11px; color: var(--text-light); text-align: center; }
 
     /* ----- More sheet ----- */
     .td-more-row { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); cursor: pointer; }
@@ -140,6 +162,14 @@ function _copyToClipboard(text, message) {
 
 window.copyTicketId = function() {
   _copyToClipboard(ticket.id, 'Ticket ID copied to clipboard');
+};
+
+/* ============================================================
+   AI tag → Closedloop filter handoff
+   ============================================================ */
+window.filterByTag = function(tag) {
+  localStorage.setItem('pendingTagFilter', tag);
+  window.location.href = 'ticket-list.html';
 };
 
 /* ============================================================
@@ -213,8 +243,9 @@ function renderDetail() {
             <div class="section-heading" style="padding:0 0 6px;">Description</div>
             <div style="font-size:var(--text-sm);color:var(--text);line-height:1.5;">${ticket.description || ''}</div>
             ${ticket.tags?.length ? `
-              <div class="chip-wrap" style="padding:var(--sp-2) 0 0;">
-                ${ticket.tags.map(t => `<span class="chip">${t}</span>`).join('')}
+              <div class="td-ai-tag-label">AI tags · tap to filter Closedloop</div>
+              <div class="td-ai-tag-wrap">
+                ${ticket.tags.map(t => `<span class="td-ai-tag-chip" onclick="filterByTag('${t.replace(/'/g, "\\'")}')">${t}</span>`).join('')}
               </div>
             ` : ''}
           </div>
@@ -246,15 +277,9 @@ function renderDetail() {
 /* ============================================================
    More sheet (Share, Delete)
    ============================================================ */
-window.onShareTicket = function() {
-  closeSheet('more');
-  const link = `${location.origin}${location.pathname}?id=${ticket.id}`;
-  _copyToClipboard(link, 'Ticket link copied to clipboard');
-};
-
 window.openMoreSheet = function() {
   openSheet('more', `
-    <div class="td-more-row" onclick="onShareTicket()">
+    <div class="td-more-row" onclick="closeSheet('more');openShareSheet();">
       ${renderIcon('send', 20)}
       <span style="font-size:var(--text-base);font-weight:600;color:var(--text);">Share ticket</span>
     </div>
@@ -263,6 +288,264 @@ window.openMoreSheet = function() {
       <span style="font-size:var(--text-base);font-weight:600;">Delete ticket</span>
     </div>
   `, 'More actions');
+};
+
+/* ============================================================
+   Share ticket — preview sheet + generated shareable image
+   ============================================================ */
+function _nowLabel() {
+  const d = new Date();
+  const date = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  return `${date} ${time}`;
+}
+
+window.openShareSheet = function() {
+  openSheet('share', _shareSheetBodyHTML(), 'Share ticket');
+};
+
+function _shareSheetBodyHTML() {
+  const assignee = getManager(ticket.assigneeId);
+  const segment  = getSegment(ticket.segmentId);
+  const s = DATA.statusMap[ticket.statusId];
+  const p = DATA.priorityMap[ticket.priorityId];
+  return `
+    <div class="td-share-preview" id="td-share-preview">
+      <div class="td-share-row-top">
+        <span class="td-share-title">Ticket #${ticket.id.replace('TKT-', '')}</span>
+        <span class="status-pill ${s.cssClass}">${s.label}</span>
+      </div>
+      <div class="td-share-field"><span>Priority</span><span class="td-share-value">${_priorityFlagSVG(_PRIORITY_COLORS[ticket.priorityId], 15)}${p.label}</span></div>
+      <div class="td-share-field"><span>Customer:</span><span class="td-share-value">${ticket.customer}</span></div>
+      <div class="td-share-field"><span>Assigned to:</span><span class="td-share-value">${assignee.name}</span></div>
+      <div class="td-share-field"><span>Current segment:</span><span class="td-share-value">${segment.name}</span></div>
+      <div class="td-share-field"><span>Created on:</span><span class="td-share-value">${formatDate(ticket.issueDate)}</span></div>
+      <div class="td-share-desc-label">Description:</div>
+      <div class="td-share-desc">${ticket.description || ''}</div>
+      ${ticket.tags?.length ? `
+        <div class="td-ai-tag-wrap" style="padding-top:var(--sp-2);">
+          ${ticket.tags.map(t => `<span class="td-ai-tag-chip" style="cursor:default;">${t}</span>`).join('')}
+        </div>
+      ` : ''}
+      <div class="td-share-divider"></div>
+      <div class="td-share-footer">Generated on ${_nowLabel()}</div>
+    </div>
+    <div class="sheet-footer" style="display:flex;gap:var(--sp-3);">
+      <div class="btn btn-outline btn-full" onclick="closeSheet('share')">Cancel</div>
+      <div class="btn btn-primary btn-full" onclick="doShareTicket()">Share</div>
+    </div>
+  `;
+}
+
+/* ----- Canvas rendering of the shareable image ----- */
+function _wrapText(ctx, text, maxWidth) {
+  const words = (text || '').split(' ');
+  const lines = [];
+  let line = '';
+  words.forEach(w => {
+    const test = line ? `${line} ${w}` : w;
+    if (line && ctx.measureText(test).width > maxWidth) {
+      lines.push(line);
+      line = w;
+    } else {
+      line = test;
+    }
+  });
+  if (line) lines.push(line);
+  return lines;
+}
+
+function _roundRectPath(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+const _STATUS_FILL_HEX = ['#ffffff', '#9FE4AC', '#FFC7A2', '#8DC3F2'];
+const _STATUS_BORDER_HEX = ['#9B9B9B', '#40CA5A', '#FF9145', '#1b87e6'];
+const _STATUS_TEXT_HEX = ['#9B9B9B', '#228B3A', '#B35A00', '#0A5BAA'];
+const _PRIORITY_HEX_SOLID = ['#42BD84', '#F6C140', '#E4632D', '#DA2222'];
+const _FLAG_PATH = 'M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z';
+
+function _buildShareCanvas() {
+  const W = 720, PAD = 32, FONT = '-apple-system, "Segoe UI", sans-serif';
+  const assignee = getManager(ticket.assigneeId);
+  const segment  = getSegment(ticket.segmentId);
+  const s = DATA.statusMap[ticket.statusId];
+  const p = DATA.priorityMap[ticket.priorityId];
+
+  const measure = document.createElement('canvas').getContext('2d');
+  measure.font = `14px ${FONT}`;
+  const descLines = _wrapText(measure, ticket.description, W - PAD * 2).slice(0, 4);
+
+  measure.font = `600 14px ${FONT}`;
+  const tagPadX = 14, tagGap = 10, tagH = 34;
+  const tags = ticket.tags || [];
+  const tagRows = [[]];
+  let rowWidth = 0;
+  tags.forEach(t => {
+    const w = measure.measureText(t).width + tagPadX * 2;
+    if (rowWidth > 0 && rowWidth + w + tagGap > W - PAD * 2) { tagRows.push([]); rowWidth = 0; }
+    tagRows[tagRows.length - 1].push({ text: t, w });
+    rowWidth += w + tagGap;
+  });
+
+  const headerH = 60, rowH = 40, fieldRows = 5;
+  const descH = 24 + descLines.length * 22 + 12;
+  const tagsH = tags.length ? tagRows.length * (tagH + 10) + 8 : 0;
+  const footerH = 46;
+  const totalH = PAD + headerH + fieldRows * rowH + descH + tagsH + footerH + PAD;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = totalH;
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, totalH);
+  ctx.strokeStyle = '#E4E4E4';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(1, 1, W - 2, totalH - 2);
+
+  let y = PAD + 8;
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#404A5B';
+  ctx.font = `700 26px ${FONT}`;
+  ctx.fillText(`Ticket #${ticket.id.replace('TKT-', '')}`, PAD, y + 14);
+
+  ctx.font = `600 14px ${FONT}`;
+  const pillLabel = s.label;
+  const pillW = ctx.measureText(pillLabel).width + 32;
+  const pillH = 32, pillX = W - PAD - pillW, pillY = y - pillH / 2 + 14;
+  _roundRectPath(ctx, pillX, pillY, pillW, pillH, pillH / 2);
+  ctx.fillStyle = _STATUS_FILL_HEX[ticket.statusId];
+  ctx.fill();
+  ctx.strokeStyle = _STATUS_BORDER_HEX[ticket.statusId];
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.fillStyle = _STATUS_TEXT_HEX[ticket.statusId];
+  ctx.textAlign = 'center';
+  ctx.fillText(pillLabel, pillX + pillW / 2, pillY + pillH / 2 + 1);
+  ctx.textAlign = 'left';
+
+  y += headerH;
+
+  function drawField(label, value, drawFlag) {
+    ctx.font = `14px ${FONT}`;
+    ctx.fillStyle = '#8E9AAD';
+    ctx.fillText(label, PAD, y + rowH / 2);
+    ctx.font = `600 15px ${FONT}`;
+    ctx.fillStyle = '#404A5B';
+    ctx.textAlign = 'right';
+    let valueX = W - PAD;
+    if (drawFlag) {
+      const flagColor = _PRIORITY_HEX_SOLID[ticket.priorityId];
+      const textW = ctx.measureText(value).width;
+      valueX = W - PAD - 22;
+      ctx.fillText(value, W - PAD, y + rowH / 2);
+      ctx.save();
+      ctx.translate(valueX - textW - 16, y + rowH / 2 - 8);
+      ctx.scale(0.7, 0.7);
+      const path = new Path2D(_FLAG_PATH);
+      ctx.fillStyle = flagColor;
+      ctx.fill(path);
+      ctx.restore();
+    } else {
+      ctx.fillText(value, W - PAD, y + rowH / 2);
+    }
+    ctx.textAlign = 'left';
+    y += rowH;
+  }
+
+  drawField('Priority', p.label, true);
+  drawField('Customer:', ticket.customer, false);
+  drawField('Assigned to:', assignee.name, false);
+  drawField('Current segment:', segment.name, false);
+  drawField('Created on:', formatDate(ticket.issueDate), false);
+
+  y += 8;
+  ctx.font = `600 15px ${FONT}`;
+  ctx.fillStyle = '#404A5B';
+  ctx.fillText('Description:', PAD, y);
+  y += 22;
+  ctx.font = `14px ${FONT}`;
+  ctx.fillStyle = '#545E6B';
+  descLines.forEach(line => { ctx.fillText(line, PAD, y); y += 22; });
+  y += 12;
+
+  if (tags.length) {
+    tagRows.forEach(row => {
+      let x = PAD;
+      row.forEach(tg => {
+        _roundRectPath(ctx, x, y, tg.w, tagH, 6);
+        ctx.fillStyle = '#EEF3FB';
+        ctx.fill();
+        ctx.strokeStyle = '#BDD7F5';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.fillStyle = '#1b87e6';
+        ctx.font = `600 14px ${FONT}`;
+        ctx.fillText(tg.text, x + tagPadX, y + tagH / 2);
+        x += tg.w + tagGap;
+      });
+      y += tagH + 10;
+    });
+    y += 8;
+  }
+
+  ctx.strokeStyle = '#E4E4E4';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(PAD, y);
+  ctx.lineTo(W - PAD, y);
+  ctx.stroke();
+  y += 30;
+
+  ctx.font = `12px ${FONT}`;
+  ctx.fillStyle = '#9B9B9B';
+  ctx.textAlign = 'center';
+  ctx.fillText(`Generated on ${_nowLabel()}`, W / 2, y);
+  ctx.textAlign = 'left';
+
+  return canvas;
+}
+
+window.doShareTicket = function() {
+  const canvas = _buildShareCanvas();
+  canvas.toBlob(async (blob) => {
+    if (!blob) { showToast('Could not generate image', 'error'); return; }
+    const file = new File([blob], `ticket-${ticket.id}.png`, { type: 'image/png' });
+    const shareText = `Ticket #${ticket.id.replace('TKT-', '')} — ${ticket.customer}`;
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: shareText, text: shareText });
+        closeSheet('share');
+        return;
+      } catch (e) { if (e.name === 'AbortError') return; }
+    }
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: shareText, text: `${shareText}\n${ticket.description || ''}` });
+        closeSheet('share');
+        return;
+      } catch (e) { if (e.name === 'AbortError') return; }
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ticket-${ticket.id}.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    showToast('Image saved — attach it to WhatsApp, Slack, or email', 'success');
+    closeSheet('share');
+  }, 'image/png');
 };
 
 /* ============================================================
@@ -759,7 +1042,18 @@ window.toggleActSort = function() {
 /* ============================================================
    Jump-nav scroll + active-chip tracking
    ============================================================ */
+let _jumpNavLock = false;
+
 window.jumpTo = function(id) {
+  const chips = document.getElementById('td-jumpnav');
+  chips?.querySelectorAll('.td-chip').forEach(c => c.classList.remove('active'));
+  chips?.querySelector(`[data-target="${id}"]`)?.classList.add('active');
+  // Suppress the scroll observer while the smooth scroll animates so it
+  // doesn't fight the chip we just set (or flicker through sections it
+  // scrolls past on the way to the target).
+  _jumpNavLock = true;
+  clearTimeout(window._jumpNavUnlockTimer);
+  window._jumpNavUnlockTimer = setTimeout(() => { _jumpNavLock = false; }, 700);
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
 
@@ -771,13 +1065,14 @@ function _initJumpNavObserver() {
     .map(id => document.getElementById(id)).filter(Boolean);
 
   const observer = new IntersectionObserver((entries) => {
+    if (_jumpNavLock) return;
     entries.forEach(entry => {
       if (entry.isIntersecting) {
         chips.querySelectorAll('.td-chip').forEach(c => c.classList.remove('active'));
         chips.querySelector(`[data-target="${entry.target.id}"]`)?.classList.add('active');
       }
     });
-  }, { root: body, rootMargin: '-10% 0px -70% 0px', threshold: 0 });
+  }, { root: body, rootMargin: '-10% 0px -60% 0px', threshold: 0 });
 
   sections.forEach(s => observer.observe(s));
 }

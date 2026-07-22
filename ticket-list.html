@@ -134,11 +134,20 @@ if (statusParam !== null) {
   clState.filterCount += 1;
 }
 
+/* Ticket Detail's AI-tag chips hand off a tag here to pre-filter the list. */
+const pendingTagFilter = localStorage.getItem('pendingTagFilter');
+if (pendingTagFilter) {
+  clState.filters.tags = [pendingTagFilter];
+  clState.filterCount += 1;
+  localStorage.removeItem('pendingTagFilter');
+}
+
 /* ============================================================
    Filter logic
    ============================================================ */
 function getFilteredTickets() {
-  let tickets = clState.searchQuery
+  const bypassTab = clState.searchQuery || clState.filters.tags.length > 0;
+  let tickets = bypassTab
     ? DATA.tickets.slice()
     : DATA.tickets.filter(t => _TAB_STATUS_MAP[clState.tab].includes(t.statusId));
   if (clState.searchQuery) {
@@ -153,6 +162,7 @@ function getFilteredTickets() {
   if (clState.filters.status.length)   tickets = tickets.filter(t => clState.filters.status.includes(t.statusId));
   if (clState.filters.priority.length) tickets = tickets.filter(t => clState.filters.priority.includes(t.priorityId));
   if (clState.filters.type.length)     tickets = tickets.filter(t => clState.filters.type.includes(t.typeId));
+  if (clState.filters.tags.length)     tickets = tickets.filter(t => (t.tags || []).some(tag => clState.filters.tags.includes(tag)));
   return tickets;
 }
 
@@ -284,7 +294,7 @@ function renderClosedLoop() {
       </div>
 
       <!-- Segmented tabs (status) -->
-      <div id="cl-tabs" style="display:${clState.searchQuery ? 'none' : ''};flex-shrink:0;">
+      <div id="cl-tabs" style="display:${(clState.searchQuery || clState.filters.tags.length) ? 'none' : ''};flex-shrink:0;">
         ${_segmentedControlHTML()}
       </div>
 
