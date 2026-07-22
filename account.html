@@ -117,12 +117,25 @@ window.changeQaCount = function(delta) {
   if (el) el.textContent = qaCount;
 };
 
+function getSnoozeDays() {
+  const v = parseInt(localStorage.getItem('snoozeDays'), 10);
+  return (v >= 1 && v <= 7) ? v : 1;
+}
+let snoozeDays = getSnoozeDays();
+
+window.changeSnoozeDays = function(delta) {
+  snoozeDays = Math.min(7, Math.max(1, snoozeDays + delta));
+  localStorage.setItem('snoozeDays', snoozeDays);
+  const el = document.getElementById('snooze-days-value');
+  if (el) el.textContent = snoozeDays;
+};
+
 function renderAccount() {
   const u = DATA.user;
   return `
     <div class="screen-content">
       <div class="acct-header">
-        <div class="acct-header-title">Account</div>
+        <div class="acct-header-title">Account & Settings</div>
       </div>
 
       <div class="acct-body">
@@ -150,14 +163,22 @@ function renderAccount() {
           </div>
         </div>
 
-        <div class="acct-section-label">Settings</div>
+        <div class="acct-section-label">Quick action</div>
         <div class="acct-card">
           <div class="acct-row">
-            <span class="acct-row-label">Number of "Quick Action" tickets</span>
+            <span class="acct-row-label">Number of tickets to show</span>
             <span style="display:flex;align-items:center;gap:10px;">
               <button onclick="changeQaCount(-1)" style="width:28px;height:28px;border-radius:14px;border:1px solid #D0D3D8;background:#fff;color:#1B3380;font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">−</button>
               <span id="qa-count-value" class="acct-row-value" style="min-width:16px;text-align:center;">${qaCount}</span>
               <button onclick="changeQaCount(1)" style="width:28px;height:28px;border-radius:14px;border:1px solid #D0D3D8;background:#fff;color:#1B3380;font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">+</button>
+            </span>
+          </div>
+          <div class="acct-row">
+            <span class="acct-row-label">Ticket snooze time</span>
+            <span style="display:flex;align-items:center;gap:10px;">
+              <button onclick="changeSnoozeDays(-1)" style="width:28px;height:28px;border-radius:14px;border:1px solid #D0D3D8;background:#fff;color:#1B3380;font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">−</button>
+              <span id="snooze-days-value" class="acct-row-value" style="min-width:16px;text-align:center;">${snoozeDays}</span>
+              <button onclick="changeSnoozeDays(1)" style="width:28px;height:28px;border-radius:14px;border:1px solid #D0D3D8;background:#fff;color:#1B3380;font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">+</button>
             </span>
           </div>
         </div>
