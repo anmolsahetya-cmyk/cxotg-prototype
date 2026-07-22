@@ -181,14 +181,17 @@ CX Manager, RetailCo International`,
       segmentId: 2, // Enterprise - West
       npsScore: 2,
       npsLabel: 'Detractor',
+      npsVerbatim: 'Charged twice for my renewal and no one told me why. Been a customer for 4 years — this is unacceptable.',
       issueDate: '2026-06-18',
       isOverdue: true,
       title: 'Billing discrepancy on annual subscription renewal',
       description: 'Customer was charged twice for their annual subscription renewal on June 15th. The amount of $1,247.00 was debited twice from their corporate card. Customer has been with us for 4 years and is extremely frustrated. Needs immediate resolution and refund.',
+      suggestedRootCause: { path: 'Billing Issues > Payment Errors', tag: 'Double charge', confidence: 0.92 },
       comments: [
         {
           id: 1, author: 'Sarah Chen', initials: 'SC', time: '2 hours ago', date: 'Jun 18, 2026',
           text: 'I have escalated this to the billing team. Refund is being processed.',
+          isInternal: true,
           replies: [
             { id: 11, author: 'Marcus Rivera', initials: 'MR', date: 'Jun 18, 2026', text: 'Thanks Sarah, I have informed the finance team.' },
             { id: 12, author: 'Priya Patel', initials: 'PP', date: 'Jun 18, 2026', text: 'Good to know. Customer has been notified.' },
@@ -197,6 +200,7 @@ CX Manager, RetailCo International`,
         {
           id: 2, author: 'Marcus Rivera', initials: 'MR', time: '1 hour ago', date: 'Jun 18, 2026',
           text: 'Finance team confirmed the duplicate charge. Refund initiated — 3-5 business days.',
+          isInternal: true,
           replies: [
             { id: 21, author: 'Sarah Chen', initials: 'SC', date: 'Jun 18, 2026', text: 'Great, please follow up with the customer once processed.' },
           ],
@@ -204,6 +208,7 @@ CX Manager, RetailCo International`,
         {
           id: 3, author: 'Priya Patel', initials: 'PP', time: '30 min ago', date: 'Jun 18, 2026',
           text: 'Customer notified via email. Will follow up tomorrow.',
+          isInternal: false,
           replies: [],
         },
       ],

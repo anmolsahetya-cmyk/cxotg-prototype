@@ -120,6 +120,30 @@ a { text-decoration: none; color: inherit; }
   --radius-lg: 12px;
   --radius-xl: 16px;
   --radius-pill: 100px;
+
+  /* Elevation (card shadows — used by bento/stacked-card layouts) */
+  --shadow-sm: 0 1px 3px rgba(16,24,40,0.08);
+  --shadow-md: 0 4px 12px rgba(16,24,40,0.10);
+
+  /* Comment visibility (internal note vs. customer-facing) */
+  --comment-internal-bg:     #FFF8E6;
+  --comment-internal-border: #F0C243;
+  --comment-internal-text:   #8A6200;
+  --comment-customer-bg:     #EDF6FD;
+  --comment-customer-border: var(--accent);
+  --comment-customer-text:   var(--accent-2);
+
+  /* Activity timeline event colors (by activity.type) */
+  --activity-status:   var(--accent);
+  --activity-priority: #E4632D;
+  --activity-comment:  #42BD84;
+  --activity-email:    #1B3380;
+  --activity-create:   #909090;
+
+  /* AI-assisted surfaces */
+  --ai-bg:     #F3ECFC;
+  --ai-border: #C9A6F0;
+  --ai-text:   #6B2FBF;
 }
 
 /* ----- Page / Shell ----- */

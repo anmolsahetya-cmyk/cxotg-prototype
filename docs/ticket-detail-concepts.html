@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ticket Details — Modernization Concepts</title>
+<link rel="stylesheet" href="../shared/styles.css">
+<style>
+  body { display: block; background: #0F172A; padding: 40px 24px 120px; }
+  .page-head { max-width: 1200px; margin: 0 auto 48px; color: #fff; }
+  .page-head h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+  .page-head p { font-size: 15px; color: #B7C0D8; max-width: 720px; line-height: 1.6; }
+  .page-head ul { margin: 16px 0 0 20px; color: #B7C0D8; font-size: 14px; line-height: 1.7; }
+
+  .direction { max-width: 1200px; margin: 0 auto 72px; }
+  .direction-head { color: #fff; margin-bottom: 20px; }
+  .direction-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 14px; background: var(--accent);
+    color: #fff; font-size: 13px; font-weight: 700; font-family: var(--font);
+    margin-right: 10px;
+  }
+  .direction-title { font-size: 21px; font-weight: 700; font-family: var(--font); }
+  .direction-sub { font-size: 14px; color: #B7C0D8; font-family: var(--font); margin-top: 6px; line-height: 1.6; max-width: 780px; }
+  .direction-why { font-size: 13px; color: #8B96B8; font-family: var(--font); margin-top: 8px; line-height: 1.6; max-width: 780px; font-style: italic; }
+
+  .frame-row { display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-start; }
+  .frame-col { display: flex; flex-direction: column; align-items: center; }
+  .frame-label {
+    color: #B7C0D8; font-size: 12px; font-weight: 700; font-family: var(--font);
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;
+  }
+
+  /* Scaled-down device shell for gallery viewing */
+  .concept-shell {
+    width: 320px; height: 693px; background: #fff; border-radius: 40px;
+    box-shadow: 0 0 0 2px #2A3F6F, 0 0 0 9px #0D1E4A, 0 24px 48px rgba(0,0,0,0.5);
+    overflow: hidden; position: relative; display: flex; flex-direction: column; flex-shrink: 0;
+  }
+  .concept-status-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 22px 4px; font-size: 11px; font-weight: 600; color: var(--text);
+    flex-shrink: 0; height: 36px; font-family: var(--font);
+  }
+  .concept-body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; position: relative; }
+  .concept-home { height: 22px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .concept-home::after { content:''; width: 110px; height: 4px; background:#000; border-radius: 3px; opacity: 0.2; }
+
+  /* Shared header used across directions */
+  .cd-header {
+    display: flex; align-items: center; gap: 10px; padding: 10px 16px;
+    background: var(--bg-card); border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .cd-back { width: 22px; height: 22px; flex-shrink: 0; }
+  .cd-title { flex: 1; font-size: var(--text-md); font-weight: 700; color: var(--text); font-family: var(--font); }
+
+  /* Quick action bar */
+  .qa-bar { display: flex; gap: var(--sp-2); padding: var(--sp-2) var(--sp-4); background: var(--bg-card); border-bottom: 1px solid var(--divider); flex-shrink: 0; }
+  .qa-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: var(--sp-2) 0; border-radius: var(--radius); color: var(--accent); cursor: default;
+  }
+  .qa-btn span { font-size: 11px; font-weight: 600; font-family: var(--font); color: var(--text); }
+
+  /* Detractor / NPS banner */
+  .nps-banner {
+    display: flex; align-items: center; gap: var(--sp-3); margin: var(--sp-2) var(--sp-4);
+    padding: var(--sp-3); border-radius: var(--radius); background: rgba(248,82,113,0.08);
+    border: 1px solid rgba(248,82,113,0.35);
+  }
+  .nps-score {
+    width: 36px; height: 36px; border-radius: var(--radius); background: var(--detractor); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; flex-shrink: 0; font-family: var(--font);
+  }
+  .nps-copy { font-size: var(--text-sm); color: var(--text); font-family: var(--font); line-height: 1.4; }
+  .nps-copy b { color: var(--error); }
+
+  /* Inline segmented status/priority pills */
+  .inline-field-row { display: flex; gap: var(--sp-2); padding: var(--sp-2) var(--sp-4); flex-wrap: wrap; }
+  .inline-field { flex: 1; min-width: 110px; }
+  .inline-field-label { font-size: 11px; color: var(--text-light); font-family: var(--font); font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
+
+  /* Jump-nav chips (Direction 1) */
+  .jump-nav { display: flex; gap: var(--sp-2); padding: var(--sp-2) var(--sp-4); overflow-x: auto; background: var(--bg-card); border-bottom: 1px solid var(--divider); flex-shrink: 0; }
+  .jump-chip { white-space: nowrap; padding: 6px 14px; border-radius: var(--radius-pill); font-size: 13px; font-family: var(--font); font-weight: 600; }
+  .jump-chip.on { background: var(--accent-bg); color: var(--accent); }
+  .jump-chip.off { background: var(--bg-selection); color: var(--text-light); }
+
+  /* Root cause inline chip row */
+  .rc-chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: var(--sp-2); }
+  .rc-chip { background: var(--bg-selection); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 10px; font-size: 12px; color: var(--text); font-family: var(--font); }
+
+  /* ===== Direction 2 — priority spine + bottom-nav + quick-edit ===== */
+  .spine { position: absolute; top: 0; bottom: 0; left: 0; width: 4px; z-index: 2; }
+  .compact-header {
+    display: flex; align-items: center; gap: 10px; padding: 10px 16px 10px 20px;
+    background: var(--bg-card); border-bottom: 1px solid var(--border); flex-shrink: 0; position: relative;
+  }
+  .compact-header .avatar { width: 34px; height: 34px; font-size: 12px; }
+  .compact-header-name { font-size: var(--text-base); font-weight: 700; color: var(--text); font-family: var(--font); }
+  .compact-header-sub { font-size: 11px; color: var(--text-light); font-family: var(--font); }
+  .fab-quick-edit { position: absolute; bottom: 78px; right: 18px; z-index: 20; width: 48px; height: 48px; box-shadow: var(--shadow-md); }
+  .quick-edit-overlay { position: absolute; inset: 0; z-index: 50; display: flex; flex-direction: column; justify-content: flex-end; }
+  .quick-edit-backdrop { position: absolute; inset: 0; background: rgba(15,23,42,0.45); }
+  .quick-edit-sheet { position: relative; background: var(--bg-card); border-radius: var(--radius-xl) var(--radius-xl) 0 0; max-height: 88%; display: flex; flex-direction: column; box-shadow: var(--shadow-md); }
+  .qe-group { padding: var(--sp-3) var(--sp-4) var(--sp-1); }
+  .qe-group-label { font-size: 11px; font-weight: 700; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.5px; font-family: var(--font); margin-bottom: var(--sp-2); }
+  .qe-seg { display: flex; gap: 6px; flex-wrap: wrap; }
+  .qe-opt { padding: 7px 13px; border-radius: var(--radius-pill); font-size: 13px; font-family: var(--font); font-weight: 600; border: 1.5px solid var(--border); color: var(--text-light); }
+  .qe-opt.sel { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+
+  /* ===== Direction 3 — conversation-first ===== */
+  .conv-header { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: var(--bg-card); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .conv-header-info { flex: 1; min-width: 0; }
+  .conv-header-name { font-size: var(--text-base); font-weight: 700; color: var(--text); font-family: var(--font); }
+  .conv-header-meta { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+  .conv-header-meta span { font-size: 11px; color: var(--text-light); font-family: var(--font); }
+  .conv-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .bubble-row { display: flex; padding: 3px var(--sp-4); }
+  .bubble-row.left { justify-content: flex-start; }
+  .bubble-row.right { justify-content: flex-end; }
+  .bubble { max-width: 78%; padding: 10px 14px; border-radius: var(--radius-lg); font-size: var(--text-sm); font-family: var(--font); line-height: 1.45; }
+  .bubble.internal { background: var(--comment-internal-bg); border: 1px solid var(--comment-internal-border); border-bottom-left-radius: 4px; }
+  .bubble.customer-sent { background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
+  .bubble-tag { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 3px; opacity: 0.75; }
+  .bubble-meta { font-size: 11px; color: var(--text-light); font-family: var(--font); margin: 2px var(--sp-4) 8px; }
+  .bubble-meta.right { text-align: right; }
+  .composer-mode { display: flex; gap: 6px; padding: var(--sp-2) var(--sp-4) 0; }
+  .composer-mode-opt { flex: 1; text-align: center; padding: 7px 0; border-radius: var(--radius); font-size: 12px; font-weight: 700; font-family: var(--font); }
+  .composer-mode-opt.internal-on { background: var(--comment-internal-bg); color: var(--comment-internal-text); border: 1px solid var(--comment-internal-border); }
+  .composer-mode-opt.customer-off { color: var(--text-light); border: 1px solid var(--border); }
+  .info-panel { background: var(--bg-card); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .info-panel-close { display: flex; justify-content: center; padding: 6px 0 0; }
+</style>
+</head>
+<body>
+
+<div class="page-head">
+  <h1>Ticket Details — Modernization Concepts (Round 2)</h1>
+  <p>Direction 1 (Unified Scroll) survived the first pass. Rounds 2–5 from the previous draft leaned too heavily on generic SaaS patterns (bento cards, an AI-purple insight card) instead of solving real mobile-triage problems. This round replaces them with two structurally distinct concepts built from the ground up around how a CX agent actually works a ticket on a phone.</p>
+  <ul>
+    <li>Phone frame chrome is fixed — only screen content changes per direction.</li>
+    <li>All colors/spacing/type pulled from <code>shared/styles.css</code> tokens.</li>
+    <li>Direction 2 reuses the existing <code>.bottom-nav</code> and <code>.fab</code> components already proven elsewhere in the prototype, rather than inventing new nav chrome.</li>
+    <li>Pick one direction as the base — it becomes the real interactive rebuild of <code>ticket-detail.html</code>.</li>
+  </ul>
+</div>
+
+<!-- ============================================================ -->
+<!-- DIRECTION 1 — Unified Scroll (carried over, unchanged)        -->
+<!-- ============================================================ -->
+<div class="direction">
+  <div class="direction-head">
+    <div><span class="direction-num">1</span><span class="direction-title">Unified Scroll</span></div>
+    <div class="direction-sub">No tabs — everything lives on one continuously scrolling page, navigated via a sticky jump-nav chip row. Status/Priority become inline segmented pills instead of dropdown-box→sheet. Root cause is an inline expandable card. A quick-action bar sits right under the header.</div>
+  </div>
+  <div class="frame-row">
+    <div class="frame-col">
+      <div class="frame-label">Full ticket page</div>
+      <div class="concept-shell">
+        <div class="concept-status-bar"><span>9:41</span><span>●●● 5G 100%</span></div>
+        <div class="cd-header">
+          <svg class="cd-back" viewBox="0 0 24 24" fill="none" stroke="var(--text)" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+          <div class="cd-title">Ticket #1041</div>
+        </div>
+        <div class="jump-nav">
+          <div class="jump-chip on">Overview</div>
+          <div class="jump-chip off">Comments</div>
+          <div class="jump-chip off">Activity</div>
+          <div class="jump-chip off">Root cause</div>
+        </div>
+        <div class="concept-body" style="background:var(--bg-page);">
+          <div class="qa-bar">
+            <div class="qa-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span>Call</span></div>
+            <div class="qa-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16v16H4z"/><path d="m22 6-10 7L2 6"/></svg><span>Email</span></div>
+            <div class="qa-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>Snooze</span></div>
+            <div class="qa-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg><span>More</span></div>
+          </div>
+
+          <div class="nps-banner">
+            <div class="nps-score">2</div>
+            <div class="nps-copy"><b>Detractor</b> — "Charged twice for my renewal and no one told me why. Been a customer for 4 years — this is unacceptable."</div>
+          </div>
+
+          <div class="inline-field-row">
+            <div class="inline-field">
+              <div class="inline-field-label">Status</div>
+              <span class="status-pill status-escalated">Escalated</span>
+            </div>
+            <div class="inline-field">
+              <div class="inline-field-label">Priority</div>
+              <span class="priority-pill priority-critical">Critical</span>
+            </div>
+          </div>
+
+          <div class="card" style="margin:var(--sp-2) var(--sp-4);">
+            <div class="detail-row"><div class="detail-label">Customer</div><div class="detail-value">James Whitfield</div></div>
+            <div class="detail-row"><div class="detail-label">Email</div><div class="detail-value">j.whitfield@techcorp.com</div></div>
+            <div class="detail-row"><div class="detail-label">Segment</div><div class="detail-value">Enterprise – West</div></div>
+            <div class="detail-row"><div class="detail-label">Created</div><div class="detail-value">June 18, 2026</div></div>
+          </div>
+
+          <div class="card" style="margin:var(--sp-2) var(--sp-4);padding:var(--sp-3) var(--sp-4);">
+            <div class="section-heading" style="padding:0 0 6px;">Description</div>
+            <div style="font-size:var(--text-sm);color:var(--text);line-height:1.5;">Customer was charged twice for their annual subscription renewal on June 15th. The amount of $1,247.00 was debited twice from their corporate card.</div>
+            <div class="chip-wrap" style="padding:var(--sp-2) 0 0;">
+              <span class="chip">Billing</span><span class="chip">Refund</span><span class="chip">Critical Account</span>
+            </div>
+          </div>
+
+          <div class="card" style="margin:var(--sp-2) var(--sp-4);padding:var(--sp-3) var(--sp-4);">
+            <div class="section-heading" style="padding:0 0 6px;">Root cause</div>
+            <div class="rc-chip-row">
+              <span class="rc-chip">Billing Issues &gt; Payment Errors: Double charge</span>
+              <span class="rc-chip">Billing Issues &gt; Account: Annual renewal</span>
+            </div>
+            <div style="font-size:13px;color:var(--accent);font-family:var(--font);font-weight:600;margin-top:var(--sp-2);">+ Edit root cause</div>
+          </div>
+
+          <div class="section-heading">Comments</div>
+          <div class="comment-item" style="margin:0 var(--sp-4);border:1px solid var(--divider);border-radius:var(--radius);background:var(--bg-card);">
+            <div class="avatar avatar-blue avatar-sm">SC</div>
+            <div class="comment-body">
+              <span class="comment-name">Sarah Chen</span><span class="comment-time">2h ago</span>
+              <div class="comment-text">I have escalated this to the billing team. Refund is being processed.</div>
+            </div>
+          </div>
+
+          <div class="section-heading">Activity</div>
+          <div class="activity-item" style="margin:0 var(--sp-2);">
+            <div class="activity-dot-col"><div class="activity-dot" style="background:var(--activity-status);"></div><div class="activity-line"></div></div>
+            <div class="activity-content"><div class="activity-title">Status changed Open → Escalated</div><div class="activity-meta">Marcus Rivera · Jun 18</div></div>
+          </div>
+        </div>
+        <div class="concept-home"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- DIRECTION 2 — Triage Spine (NEW)                              -->
+<!-- ============================================================ -->
+<div class="direction">
+  <div class="direction-head">
+    <div><span class="direction-num">2</span><span class="direction-title">Triage Spine</span></div>
+    <div class="direction-sub">Built around three mobile-native ergonomics principles instead of desktop-web habits carried onto a phone: (1) a colored priority spine running the full height of the screen, so an agent scanning between tickets recognizes severity in peripheral vision without reading text; (2) section switching moves to the <b>bottom</b> tab bar — thumb-reachable on a large phone, unlike top tabs; (3) Status, Priority, Assignee, and Root Cause — today three separate flows (two dropdown sheets + a full CRC screen) — collapse into <b>one combined Quick Edit sheet</b>, opened from a single FAB, because agents typically touch all four together during triage.</div>
+    <div class="direction-why">Reuses <code>.bottom-nav</code> and <code>.fab</code> — components that already exist and are proven elsewhere in this prototype — rather than inventing new chrome.</div>
+  </div>
+  <div class="frame-row">
+    <div class="frame-col">
+      <div class="frame-label">Overview — spine + bottom nav</div>
+      <div class="concept-shell">
+        <div class="concept-status-bar"><span>9:41</span><span>●●● 5G 100%</span></div>
+        <div class="compact-header">
+          <svg class="cd-back" viewBox="0 0 24 24" fill="none" stroke="var(--text)" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+          <div class="avatar" style="background:#CC6677;">JW</div>
+          <div style="flex:1;min-width:0;">
+            <div class="compact-header-name">James Whitfield</div>
+            <div class="compact-header-sub">Ticket #1041 · Enterprise – West</div>
+          </div>
+        </div>
+        <div class="concept-body" style="background:var(--bg-page);">
+          <div class="spine" style="background:var(--priority-critical-border);"></div>
+          <div style="padding-left:14px;">
+            <div class="nps-banner" style="margin-left:calc(var(--sp-4) - 4px);">
+              <div class="nps-score">2</div>
+              <div class="nps-copy"><b>Detractor</b> — "Charged twice for my renewal and no one told me why."</div>
+            </div>
+            <div class="inline-field-row">
+              <div class="inline-field"><div class="inline-field-label">Status</div><span class="status-pill status-escalated">Escalated</span></div>
+              <div class="inline-field"><div class="inline-field-label">Priority</div><span class="priority-pill priority-critical">Critical</span></div>
+            </div>
+            <div class="card" style="margin:var(--sp-2) var(--sp-4) var(--sp-2) calc(var(--sp-4) - 4px);">
+              <div class="detail-row"><div class="detail-label">Email</div><div class="detail-value">j.whitfield@techcorp.com</div></div>
+              <div class="detail-row"><div class="detail-label">Assignee</div><div class="detail-value">Sarah Chen</div></div>
+              <div class="detail-row"><div class="detail-label">Created</div><div class="detail-value">June 18, 2026</div></div>
+            </div>
+            <div class="card" style="margin:var(--sp-2) var(--sp-4) var(--sp-2) calc(var(--sp-4) - 4px);padding:var(--sp-3) var(--sp-4);">
+              <div class="section-heading" style="padding:0 0 6px;">Description</div>
+              <div style="font-size:var(--text-sm);color:var(--text);line-height:1.5;">Customer was charged twice for their annual subscription renewal on June 15th — $1,247.00 debited twice.</div>
+            </div>
+            <div class="card" style="margin:var(--sp-2) var(--sp-4) var(--sp-2) calc(var(--sp-4) - 4px);padding:var(--sp-3) var(--sp-4);">
+              <div class="section-heading" style="padding:0 0 6px;">Root cause</div>
+              <div class="rc-chip-row"><span class="rc-chip">Double charge</span><span class="rc-chip">Annual renewal</span></div>
+            </div>
+          </div>
+          <div class="fab fab-quick-edit">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </div>
+        </div>
+        <div class="bottom-nav">
+          <div class="bottom-nav-item active">
+            <div class="bottom-nav-icon-bg"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
+            <div class="bottom-nav-label">Overview</div>
+          </div>
+          <div class="bottom-nav-item">
+            <div class="bottom-nav-icon-bg"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></div>
+            <div class="bottom-nav-label">Comments</div>
+          </div>
+          <div class="bottom-nav-item">
+            <div class="bottom-nav-icon-bg"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+            <div class="bottom-nav-label">Activity</div>
+          </div>
+          <div class="bottom-nav-item">
+            <div class="bottom-nav-icon-bg"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+            <div class="bottom-nav-label">Root cause</div>
+          </div>
+        </div>
+        <div class="concept-home"></div>
+      </div>
+    </div>
+    <div class="frame-col">
+      <div class="frame-label">Quick Edit sheet (Status + Priority + Assignee + Root cause, combined)</div>
+      <div class="concept-shell">
+        <div class="concept-status-bar"><span>9:41</span><span>●●● 5G 100%</span></div>
+        <div class="concept-body" style="background:var(--bg-page);">
+          <div class="spine" style="background:var(--priority-critical-border);"></div>
+          <div class="quick-edit-overlay">
+            <div class="quick-edit-backdrop"></div>
+            <div class="quick-edit-sheet">
+              <div class="sheet-handle"></div>
+              <div class="sheet-header"><span class="sheet-title">Quick Edit</span></div>
+              <div class="sheet-body">
+                <div class="qe-group">
+                  <div class="qe-group-label">Status</div>
+                  <div class="qe-seg">
+                    <div class="qe-opt">New</div><div class="qe-opt">Open</div>
+                    <div class="qe-opt sel">Escalated</div><div class="qe-opt">Resolved</div>
+                  </div>
+                </div>
+                <div class="qe-group">
+                  <div class="qe-group-label">Priority</div>
+                  <div class="qe-seg">
+                    <div class="qe-opt">Low</div><div class="qe-opt">Medium</div>
+                    <div class="qe-opt">High</div><div class="qe-opt sel">Critical</div>
+                  </div>
+                </div>
+                <div class="qe-group">
+                  <div class="qe-group-label">Assignee</div>
+                  <div class="qe-seg">
+                    <div class="qe-opt sel">Sarah Chen</div><div class="qe-opt">Marcus Rivera</div><div class="qe-opt">Priya Patel</div>
+                  </div>
+                </div>
+                <div class="qe-group" style="padding-bottom:var(--sp-3);">
+                  <div class="qe-group-label">Root cause</div>
+                  <div class="qe-seg">
+                    <div class="qe-opt sel">Double charge</div><div class="qe-opt sel">Annual renewal</div><div class="qe-opt">+ Add</div>
+                  </div>
+                </div>
+              </div>
+              <div class="sheet-footer"><div class="btn btn-primary btn-full">Save changes</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="concept-home"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- DIRECTION 3 — Conversation-First (NEW)                        -->
+<!-- ============================================================ -->
+<div class="direction">
+  <div class="direction-head">
+    <div><span class="direction-num">3</span><span class="direction-title">Conversation-First</span></div>
+    <div class="direction-sub">Flips the model: a CX agent's real job is reading and responding to a conversation, not filling out a form — so the conversation is the primary surface, not a tab buried behind Overview. Opening a ticket drops straight into the message log, styled like a chat thread — internal notes as muted left-aligned bubbles, anything actually sent to the customer as a solid accent bubble on the right. Ticket metadata (status, priority, root cause, customer info) lives behind a compact header that expands into an info panel on tap, rather than owning its own tab. The composer has an explicit internal/customer toggle, addressing the "which audience is this for" ambiguity at the point of writing, not just at display time.</div>
+  </div>
+  <div class="frame-row">
+    <div class="frame-col">
+      <div class="frame-label">Conversation (default view)</div>
+      <div class="concept-shell">
+        <div class="concept-status-bar"><span>9:41</span><span>●●● 5G 100%</span></div>
+        <div class="conv-header">
+          <svg class="cd-back" viewBox="0 0 24 24" fill="none" stroke="var(--text)" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+          <div class="avatar" style="background:#CC6677;">JW</div>
+          <div class="conv-header-info">
+            <div class="conv-header-name">James Whitfield</div>
+            <div class="conv-header-meta">
+              <div class="conv-dot" style="background:var(--status-escalated-border);"></div><span>Escalated</span><span>·</span><span>Critical</span>
+            </div>
+          </div>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-light)" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="concept-body" style="background:var(--bg-card);padding:var(--sp-2) 0;">
+          <div class="bubble-row left">
+            <div class="bubble internal"><span class="bubble-tag">Internal · Sarah Chen</span>I have escalated this to the billing team. Refund is being processed.</div>
+          </div>
+          <div class="bubble-meta">2 hours ago</div>
+
+          <div class="bubble-row left">
+            <div class="bubble internal"><span class="bubble-tag">Internal · Marcus Rivera</span>Finance team confirmed the duplicate charge. Refund initiated — 3-5 business days.</div>
+          </div>
+          <div class="bubble-meta">1 hour ago</div>
+
+          <div class="bubble-row right">
+            <div class="bubble customer-sent"><span class="bubble-tag" style="opacity:0.85;">Sent to customer</span>Hi James, we've confirmed the duplicate charge and your refund of $1,247.00 is being processed — you'll see it in 3-5 business days.</div>
+          </div>
+          <div class="bubble-meta right">Priya Patel · 30 min ago</div>
+        </div>
+        <div class="composer-mode">
+          <div class="composer-mode-opt internal-on">Internal note</div>
+          <div class="composer-mode-opt customer-off">Reply to customer</div>
+        </div>
+        <div class="comment-input-bar" style="border-top:none;">
+          <input class="comment-input" placeholder="Write an internal note…" style="pointer-events:none;">
+        </div>
+        <div class="concept-home"></div>
+      </div>
+    </div>
+    <div class="frame-col">
+      <div class="frame-label">Ticket Info panel (expanded from header)</div>
+      <div class="concept-shell">
+        <div class="concept-status-bar"><span>9:41</span><span>●●● 5G 100%</span></div>
+        <div class="conv-header">
+          <svg class="cd-back" viewBox="0 0 24 24" fill="none" stroke="var(--text)" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+          <div class="avatar" style="background:#CC6677;">JW</div>
+          <div class="conv-header-info">
+            <div class="conv-header-name">James Whitfield</div>
+            <div class="conv-header-meta"><div class="conv-dot" style="background:var(--status-escalated-border);"></div><span>Escalated</span><span>·</span><span>Critical</span></div>
+          </div>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><polyline points="18 15 12 9 6 15"/></svg>
+        </div>
+        <div class="info-panel">
+          <div class="nps-banner">
+            <div class="nps-score">2</div>
+            <div class="nps-copy"><b>Detractor</b> — "Charged twice for my renewal and no one told me why."</div>
+          </div>
+          <div class="inline-field-row">
+            <div class="inline-field"><div class="inline-field-label">Status</div><span class="status-pill status-escalated">Escalated</span></div>
+            <div class="inline-field"><div class="inline-field-label">Priority</div><span class="priority-pill priority-critical">Critical</span></div>
+          </div>
+          <div class="detail-row"><div class="detail-label">Email</div><div class="detail-value">j.whitfield@techcorp.com</div></div>
+          <div class="detail-row"><div class="detail-label">Segment</div><div class="detail-value">Enterprise – West</div></div>
+          <div class="detail-row" style="border-bottom:none;">
+            <div class="detail-label">Root cause</div>
+            <div class="detail-value"><div class="rc-chip-row" style="margin-top:0;"><span class="rc-chip">Double charge</span><span class="rc-chip">Annual renewal</span></div></div>
+          </div>
+        </div>
+        <div class="concept-body" style="background:var(--bg-card);opacity:0.35;padding:var(--sp-2) 0;">
+          <div class="bubble-row left"><div class="bubble internal"><span class="bubble-tag">Internal · Sarah Chen</span>I have escalated this to the billing team.</div></div>
+        </div>
+        <div class="concept-home"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

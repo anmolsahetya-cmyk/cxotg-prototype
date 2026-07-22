@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Pearl CX — Ticket Detail (v2)</title>
+  <link rel="stylesheet" href="shared/styles.css">
+  <style>
+    /* ----- Header + jump-nav (fixed chrome, not part of the scroll) ----- */
+    .td-header {
+      display: flex; align-items: center; gap: var(--sp-2);
+      padding: 0 var(--sp-4); height: 52px; background: var(--bg-card);
+      border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .td-header-title { flex: 1; text-align: center; font-size: var(--text-lg); font-weight: 700; color: var(--text); }
+    .td-jumpnav {
+      display: flex; gap: var(--sp-2); padding: var(--sp-2) var(--sp-4);
+      overflow-x: auto; background: var(--bg-card); border-bottom: 1px solid var(--divider); flex-shrink: 0;
+    }
+    .td-jumpnav::-webkit-scrollbar { display: none; }
+    .td-chip {
+      white-space: nowrap; padding: 6px 14px; border-radius: var(--radius-pill);
+      font-size: 13px; font-weight: 600; cursor: pointer; transition: background 150ms, color 150ms;
+    }
+    .td-chip.active { background: var(--accent-bg); color: var(--accent); }
+    .td-chip:not(.active) { background: var(--bg-selection); color: var(--text-light); }
+
+    /* ----- Quick action bar ----- */
+    .td-qa-bar { display: flex; gap: var(--sp-2); padding: var(--sp-2) var(--sp-4); background: var(--bg-card); border-bottom: 1px solid var(--divider); flex-shrink: 0; }
+    .td-qa-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: var(--sp-2) 0; border-radius: var(--radius); color: var(--accent); cursor: pointer; transition: background 120ms; }
+    .td-qa-btn:active { background: var(--bg-selection); }
+    .td-qa-btn span { font-size: 11px; font-weight: 600; color: var(--text); }
+
+    /* ----- NPS / detractor banner ----- */
+    .td-nps-banner { display: flex; align-items: center; gap: var(--sp-3); margin: var(--sp-3) var(--sp-4) 0; padding: var(--sp-3); border-radius: var(--radius); background: rgba(248,82,113,0.08); border: 1px solid rgba(248,82,113,0.35); }
+    .td-nps-score { width: 36px; height: 36px; border-radius: var(--radius); background: var(--detractor); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; flex-shrink: 0; }
+    .td-nps-copy { font-size: var(--text-sm); color: var(--text); line-height: 1.4; }
+    .td-nps-copy b { color: var(--error); }
+
+    /* ----- Inline status/priority pills ----- */
+    .td-field-row { display: flex; gap: var(--sp-2); padding: var(--sp-3) var(--sp-4) var(--sp-1); flex-wrap: wrap; }
+    .td-field { flex: 1; min-width: 110px; }
+    .td-field-label { font-size: 11px; color: var(--text-light); font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px; }
+    .td-field .status-pill, .td-field .priority-pill { cursor: pointer; }
+
+    /* ----- Root cause inline card ----- */
+    .td-rc-chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: var(--sp-2); }
+    .td-rc-chip { background: var(--bg-selection); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 10px; font-size: 12px; color: var(--text); }
+    .td-rc-edit-link { font-size: 13px; color: var(--accent); font-weight: 600; margin-top: var(--sp-2); cursor: pointer; }
+
+    /* ----- CRC tree (rendered inside a bottom sheet) ----- */
+    .crc-section-head { display: flex; align-items: center; background: var(--bg-selection); border: 1px solid var(--border); border-radius: var(--radius); height: 48px; padding: 0 var(--sp-3); cursor: pointer; margin-bottom: var(--sp-2); }
+    .crc-section-head span { flex: 1; font-size: var(--text-sm); font-weight: 600; color: var(--text); }
+    .crc-item { background: var(--bg-card); border: 1px solid var(--divider); border-radius: var(--radius); padding: var(--sp-3); margin-bottom: var(--sp-2); cursor: pointer; }
+    .crc-item-row { display: flex; align-items: center; gap: var(--sp-3); }
+    .crc-sub-row { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-2) 0 var(--sp-2) var(--sp-5); border-top: 1px solid var(--divider); margin-top: var(--sp-2); cursor: pointer; }
+    .crc-cb { width: 20px; height: 20px; border-radius: 4px; border: 2px solid var(--border-2); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+    .crc-cb.checked { background: var(--accent); border-color: var(--accent); }
+    .crc-other-input { flex: 1; border: none; border-bottom: 1.5px solid var(--border); background: var(--bg-selection); padding: var(--sp-2) var(--sp-3); font-size: var(--text-base); font-family: var(--font); outline: none; border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
+
+    /* ----- More sheet ----- */
+    .td-more-row { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); cursor: pointer; }
+    .td-more-row:active { background: var(--bg-selection); }
+
+    /* ----- Add comment box ----- */
+    .td-add-comment { padding: var(--sp-2) var(--sp-4) var(--sp-4); }
+  </style>
+</head>
+<body>
+<script src="shared/data.js"></script>
+<script src="shared/components.js"></script>
+<script>
+
+/* ============================================================
+   Load ticket
+   ============================================================ */
+const storedId = localStorage.getItem('selectedTicketId') || 'TKT-1041';
+let ticket = DATA.tickets.find(t => t.id === storedId) || DATA.tickets[0];
+ticket = JSON.parse(JSON.stringify(ticket));
+
+/* ============================================================
+   Screen state
+   ============================================================ */
+const _expandedReplies = new Set();
+let _replyingTo = null;
+let _actSort = 'latest';
+const _crcExpanded = new Set();
+const _crcSelected = new Set();
+let _otherChecked = false;
+let _otherText = '';
+
+/* ============================================================
+   Snooze helpers (matches dashboard.html's Quick Action snooze)
+   ============================================================ */
+function getSnoozeDays() {
+  const v = parseInt(localStorage.getItem('snoozeDays'), 10);
+  return (v >= 1 && v <= 7) ? v : 1;
+}
+function _getSnoozeMap() {
+  try { return JSON.parse(localStorage.getItem('ticketSnoozes')) || {}; }
+  catch (e) { return {}; }
+}
+function _snoozeTicket(id) {
+  const map = _getSnoozeMap();
+  map[id] = Date.now() + getSnoozeDays() * 24 * 60 * 60 * 1000;
+  localStorage.setItem('ticketSnoozes', JSON.stringify(map));
+}
+
+/* ============================================================
+   Main render
+   ============================================================ */
+function renderDetail() {
+  const assignee = getManager(ticket.assigneeId);
+  const segment  = getSegment(ticket.segmentId);
+
+  return `
+    <div class="screen-content">
+      <div class="td-header">
+        <button class="icon-btn" onclick="window.history.length>1?window.history.back():window.location.href='ticket-list.html'">
+          ${renderIcon('back', 22)}
+        </button>
+        <span class="td-header-title">Ticket #${ticket.id.replace('TKT-', '')}</span>
+        <div style="width:36px;"></div>
+      </div>
+
+      <div class="td-jumpnav" id="td-jumpnav">
+        <div class="td-chip active" data-target="sec-top" onclick="jumpTo('sec-top')">Overview</div>
+        <div class="td-chip" data-target="sec-comments" onclick="jumpTo('sec-comments')">Comments</div>
+        <div class="td-chip" data-target="sec-activity" onclick="jumpTo('sec-activity')">Activity</div>
+        <div class="td-chip" data-target="sec-rootcause" onclick="jumpTo('sec-rootcause')">Root cause</div>
+      </div>
+
+      <div class="screen-body" id="td-body" style="background:var(--bg-page);">
+        ${_renderQuickActions()}
+        ${_renderNpsBanner()}
+
+        <div id="sec-top">
+          <div class="td-field-row">
+            <div class="td-field">
+              <div class="td-field-label">Status</div>
+              <span id="td-status-pill">${_statusPillHTML()}</span>
+            </div>
+            <div class="td-field">
+              <div class="td-field-label">Priority</div>
+              <span id="td-priority-pill">${_priorityPillHTML()}</span>
+            </div>
+          </div>
+
+          <div class="card" style="margin:var(--sp-2) var(--sp-4);">
+            <div class="detail-row"><div class="detail-label">Customer</div><div class="detail-value">${ticket.customer}</div></div>
+            <div class="detail-row"><div class="detail-label">Email</div><div class="detail-value">${ticket.email}</div></div>
+            <div class="detail-row"><div class="detail-label">Segment</div><div class="detail-value">${segment.name}</div></div>
+            <div class="detail-row"><div class="detail-label">Assigned to</div><div class="detail-value">${assignee.name}</div></div>
+            <div class="detail-row"><div class="detail-label">Created</div><div class="detail-value">${formatDate(ticket.issueDate)}</div></div>
+          </div>
+
+          <div class="card" style="margin:var(--sp-2) var(--sp-4);padding:var(--sp-3) var(--sp-4);">
+            <div class="section-heading" style="padding:0 0 6px;">Description</div>
+            <div style="font-size:var(--text-sm);color:var(--text);line-height:1.5;">${ticket.description || ''}</div>
+            ${ticket.tags?.length ? `
+              <div class="chip-wrap" style="padding:var(--sp-2) 0 0;">
+                ${ticket.tags.map(t => `<span class="chip">${t}</span>`).join('')}
+              </div>
+            ` : ''}
+          </div>
+        </div>
+
+        <div id="sec-rootcause">
+          <div class="card" style="margin:var(--sp-2) var(--sp-4);padding:var(--sp-3) var(--sp-4);">
+            <div class="section-heading" style="padding:0 0 6px;">Root cause</div>
+            <div id="td-rootcause-inner">${_rootCauseInnerHTML()}</div>
+          </div>
+        </div>
+
+        <div id="sec-comments">
+          <div class="section-heading">Comments</div>
+          <div id="td-comments-list">${_commentsListHTML()}</div>
+          <div class="td-add-comment">
+            <textarea id="td-comment-input" class="input-field" placeholder="Write a comment" rows="2"
+              style="resize:none;"
+              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitComment();}"></textarea>
+            <button class="btn btn-primary btn-sm" style="margin-top:var(--sp-2);" onclick="submitComment()">Post comment</button>
+          </div>
+        </div>
+
+        <div id="sec-activity">
+          <div id="td-activity-inner">${_activityInnerHTML()}</div>
+        </div>
+
+        <div style="height:var(--sp-6);"></div>
+      </div>
+    </div>
+  `;
+}
+
+/* ============================================================
+   Quick actions
+   ============================================================ */
+function _renderQuickActions() {
+  return `
+    <div class="td-qa-bar">
+      <div class="td-qa-btn" onclick="showToast('Calling ${ticket.customer}…','info')">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        <span>Call</span>
+      </div>
+      <div class="td-qa-btn" onclick="window.location.href='send-email.html'">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16v16H4z"/><path d="m22 6-10 7L2 6"/></svg>
+        <span>Email</span>
+      </div>
+      <div class="td-qa-btn" onclick="onSnoozeTicket()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>Snooze</span>
+      </div>
+      <div class="td-qa-btn" onclick="openMoreSheet()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+        <span>More</span>
+      </div>
+    </div>
+  `;
+}
+
+window.onSnoozeTicket = function() {
+  _snoozeTicket(ticket.id);
+  const days = getSnoozeDays();
+  showToast(`Snoozed for ${days} day${days === 1 ? '' : 's'}`, 'success');
+};
+
+window.openMoreSheet = function() {
+  openSheet('more', `
+    <div class="td-more-row" style="color:var(--error);" onclick="closeSheet('more');openDeleteConfirm();">
+      ${renderIcon('trash', 20)}
+      <span style="font-size:var(--text-base);font-weight:600;">Delete ticket</span>
+    </div>
+  `, 'More actions');
+};
+
+/* ============================================================
+   NPS / detractor banner
+   ============================================================ */
+function _renderNpsBanner() {
+  if (ticket.npsLabel !== 'Detractor') return '';
+  const quote = ticket.npsVerbatim
+    ? `"${ticket.npsVerbatim}"`
+    : `This ticket originated from a detractor survey response.`;
+  return `
+    <div class="td-nps-banner">
+      <div class="td-nps-score">${ticket.npsScore}</div>
+      <div class="td-nps-copy"><b>Detractor</b> — ${quote}</div>
+    </div>
+  `;
+}
+
+/* ============================================================
+   Status / Priority pills + sheets
+   ============================================================ */
+function _statusPillHTML() {
+  const s = DATA.statusMap[ticket.statusId];
+  return `<span class="status-pill ${s.cssClass}" onclick="openStatusSheet()">${s.label}</span>`;
+}
+function _priorityPillHTML() {
+  const p = DATA.priorityMap[ticket.priorityId];
+  return `<span class="priority-pill ${p.cssClass}" onclick="openPrioritySheet()">${p.label}</span>`;
+}
+
+window.openStatusSheet = function() {
+  const rows = Object.entries(DATA.statusMap).map(([id, s]) => {
+    const isSel = ticket.statusId === Number(id);
+    return `<div class="checkbox-row" onclick="setStatus(${id})">
+      <span class="status-pill ${s.cssClass}" style="flex:1;">${s.label}</span>
+      ${isSel ? renderIcon('check', 18) : ''}
+    </div>`;
+  }).join('');
+  openSheet('status', rows, 'Status');
+};
+
+window.setStatus = function(id) {
+  ticket.statusId = Number(id);
+  closeSheet('status');
+  document.getElementById('td-status-pill').innerHTML = _statusPillHTML();
+  showToast('Status updated to ' + DATA.statusMap[id].label, 'success');
+};
+
+window.openPrioritySheet = function() {
+  const rows = Object.entries(DATA.priorityMap).map(([id, p]) => {
+    const isSel = ticket.priorityId === Number(id);
+    return `<div class="checkbox-row" onclick="setPriority(${id})">
+      <span class="priority-pill ${p.cssClass}" style="flex:1;">${p.label}</span>
+      ${isSel ? renderIcon('check', 18) : ''}
+    </div>`;
+  }).join('');
+  openSheet('priority', rows, 'Priority');
+};
+
+window.setPriority = function(id) {
+  ticket.priorityId = Number(id);
+  closeSheet('priority');
+  document.getElementById('td-priority-pill').innerHTML = _priorityPillHTML();
+  showToast('Priority updated to ' + DATA.priorityMap[id].label, 'success');
+};
+
+/* ============================================================
+   Delete confirmation
+   ============================================================ */
+window.openDeleteConfirm = function() {
+  openSheet('delete', `
+    <div style="padding:var(--sp-2) var(--sp-4) var(--sp-5);text-align:center;">
+      <div style="font-size:40px;margin-bottom:var(--sp-3);">🗑️</div>
+      <div style="font-size:var(--text-base);color:var(--text);line-height:1.5;margin-bottom:var(--sp-5);">
+        Are you sure you want to delete <b>${ticket.id}</b>? This action cannot be undone.
+      </div>
+      <div style="display:flex;gap:var(--sp-3);">
+        <div class="btn btn-outline btn-full" onclick="closeSheet('delete')">Cancel</div>
+        <div class="btn btn-danger btn-full" onclick="confirmDelete()">Delete</div>
+      </div>
+    </div>
+  `, 'Delete ticket');
+};
+
+window.confirmDelete = function() {
+  closeSheet('delete');
+  showToast('Ticket deleted', 'error');
+  setTimeout(() => { window.location.href = 'ticket-list.html'; }, 1200);
+};
+
+/* ============================================================
+   Root cause — inline card + CRC sheet
+   ============================================================ */
+function _rootCauseInnerHTML() {
+  const causes = ticket.centralizedRootCauses || [];
+  return `
+    ${causes.length ? `
+      <div class="td-rc-chip-row">
+        ${causes.map(rc => `<span class="td-rc-chip">${rc.tag}</span>`).join('')}
+      </div>
+    ` : `<div style="font-size:var(--text-sm);color:var(--text-light);">No root cause selected yet.</div>`}
+    <div class="td-rc-edit-link" onclick="openRootCauseSheet()">+ Edit root cause</div>
+  `;
+}
+
+function _refreshRootCause() {
+  document.getElementById('td-rootcause-inner').innerHTML = _rootCauseInnerHTML();
+}
+
+window.openRootCauseSheet = function() {
+  openSheet('crc', _crcBodyHTML(), 'Root cause');
+};
+
+function _crcCount(section) {
+  let n = 0;
+  section.items.forEach(item => {
+    if (item.subItems?.length) item.subItems.forEach(s => { if (_crcSelected.has(s.id)) n++; });
+    else if (_crcSelected.has(item.id)) n++;
+  });
+  return n;
+}
+
+function _crcCb(checked) {
+  return `<div class="crc-cb${checked ? ' checked' : ''}">${checked ? renderIcon('check', 13) : ''}</div>`;
+}
+
+function _crcSectionHTML(section) {
+  const isOpen = _crcExpanded.has(section.id);
+  const count = _crcCount(section);
+  return `
+    <div class="crc-section">
+      <div class="crc-section-head" onclick="crcToggleSection('${section.id}')">
+        <span>${section.name} (${count})</span>
+        ${renderIcon(isOpen ? 'chevron_down' : 'chevron_right', 16)}
+      </div>
+      ${isOpen ? section.items.map(_crcItemHTML).join('') : ''}
+    </div>
+  `;
+}
+
+function _crcItemHTML(item) {
+  const hasSubs = item.subItems?.length > 0;
+  const isSel = _crcSelected.has(item.id);
+  if (!hasSubs) {
+    return `
+      <div class="crc-item" onclick="crcToggle('${item.id}')">
+        <div class="crc-item-row">${_crcCb(isSel)}<span style="font-size:var(--text-sm);color:var(--text);">${item.name}</span></div>
+      </div>`;
+  }
+  return `
+    <div class="crc-item">
+      <div class="crc-item-row" onclick="crcToggle('${item.id}')">${_crcCb(isSel)}<span style="font-size:var(--text-sm);color:var(--text);">${item.name}</span></div>
+      ${item.subItems.map(sub => `
+        <div class="crc-sub-row" onclick="crcToggle('${sub.id}')">${_crcCb(_crcSelected.has(sub.id))}<span style="font-size:13px;color:var(--text);">${sub.name}</span></div>
+      `).join('')}
+    </div>`;
+}
+
+function _crcBodyHTML() {
+  const tree = DATA.centralizedRootCauseTree;
+  const active = _crcSelected.size > 0 || _otherChecked;
+  return `
+    <div style="padding-bottom:var(--sp-3);">
+      ${tree.map(_crcSectionHTML).join('')}
+      <div style="display:flex;align-items:center;gap:var(--sp-3);padding:var(--sp-2) 0;">
+        <div class="crc-cb${_otherChecked ? ' checked' : ''}" onclick="crcToggleOther()">${_otherChecked ? renderIcon('check', 13) : ''}</div>
+        <input class="crc-other-input" type="text" placeholder="Other" value="${_otherText}"
+          ${_otherChecked ? '' : 'disabled'} oninput="_otherText=this.value" />
+      </div>
+    </div>
+    <div class="sheet-footer">
+      <div class="btn ${active ? 'btn-primary' : 'btn-disabled btn-secondary'} btn-full" onclick="${active ? 'submitCRC()' : 'void 0'}">Update</div>
+    </div>
+  `;
+}
+
+window.crcToggleSection = function(id) {
+  if (_crcExpanded.has(id)) _crcExpanded.delete(id); else _crcExpanded.add(id);
+  updateSheetBody('crc', _crcBodyHTML());
+};
+window.crcToggle = function(id) {
+  if (_crcSelected.has(id)) _crcSelected.delete(id); else _crcSelected.add(id);
+  updateSheetBody('crc', _crcBodyHTML());
+};
+window.crcToggleOther = function() {
+  _otherChecked = !_otherChecked;
+  if (!_otherChecked) _otherText = '';
+  updateSheetBody('crc', _crcBodyHTML());
+};
+
+window.submitCRC = function() {
+  const tree = DATA.centralizedRootCauseTree;
+  const newCauses = [];
+  tree.forEach(section => {
+    section.items.forEach(item => {
+      if (item.subItems?.length) {
+        item.subItems.forEach(sub => { if (_crcSelected.has(sub.id)) newCauses.push({ path: `${section.name} > ${item.name}`, tag: sub.name }); });
+      } else if (_crcSelected.has(item.id)) {
+        newCauses.push({ path: section.name, tag: item.name });
+      }
+    });
+  });
+  if (_otherChecked && _otherText.trim()) newCauses.push({ path: 'Other', tag: _otherText.trim() });
+  ticket.centralizedRootCauses = newCauses;
+  closeSheet('crc');
+  _refreshRootCause();
+  showToast('Root cause updated', 'success');
+};
+
+/* ============================================================
+   Comments — embedded section
+   ============================================================ */
+function _authorAvatar(author, initials) {
+  const mgr = DATA.managers.find(m => m.name === author);
+  const color = mgr ? mgr.avatarColor : '#4A72A8';
+  return renderAvatar(author, color, 'sm');
+}
+
+function _replyRowsHTML(replies, parentId) {
+  if (!replies?.length) return '';
+  const isOpen = _expandedReplies.has(parentId);
+  const label = replies.length === 1 ? '1 reply' : `${replies.length} replies`;
+  const expanded = isOpen ? replies.map(r => `
+    <div style="display:flex;gap:var(--sp-2);margin-top:var(--sp-2);padding-left:4px;">
+      ${_authorAvatar(r.author, r.initials)}
+      <div style="flex:1;min-width:0;">
+        <span style="font-size:13px;font-weight:700;color:var(--text);">${r.author}</span>
+        <span style="font-size:12px;color:var(--text-light);margin-left:6px;">${r.date || r.time || ''}</span>
+        <div style="font-size:13px;color:var(--text);line-height:1.5;">${r.text}</div>
+      </div>
+    </div>
+  `).join('') : '';
+  return `
+    <div onclick="toggleReplies(${parentId})" style="display:flex;align-items:center;gap:6px;margin-top:var(--sp-2);cursor:pointer;">
+      <span style="font-size:13px;color:var(--text-light);">${label}</span>
+      ${renderIcon(isOpen ? 'chevron_down' : 'chevron_right', 14)}
+    </div>
+    <div>${expanded}</div>
+  `;
+}
+
+function _commentItemHTML(c) {
+  const isReplying = _replyingTo === c.id;
+  return `
+    <div class="comment-item">
+      ${_authorAvatar(c.author, c.initials)}
+      <div class="comment-body">
+        <span class="comment-name">${c.author}</span>
+        <span class="comment-time">${c.date || c.time || ''}</span>
+        ${c.isInternal === false ? `<span class="badge" style="background:var(--comment-customer-border);margin-left:6px;">Sent</span>` : ''}
+        <div class="comment-text">${c.text}</div>
+        <div onclick="startReply(${c.id})" style="font-size:13px;color:var(--accent);cursor:pointer;margin-top:4px;">Reply</div>
+        ${_replyRowsHTML(c.replies, c.id)}
+        ${isReplying ? `
+          <div style="display:flex;align-items:center;gap:var(--sp-2);margin-top:var(--sp-2);">
+            ${renderAvatar(DATA.user.name, '#4A72A8', 'sm')}
+            <input type="text" id="reply-text-${c.id}" class="input-field" placeholder="Write a reply…" style="height:36px;font-size:13px;"
+              onkeydown="if(event.key==='Enter') submitReply(${c.id})"/>
+          </div>
+        ` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function _commentsListHTML() {
+  if (!ticket.comments.length) {
+    return `<div class="empty-state" style="padding:var(--sp-6) 0;"><div class="empty-state-icon">💬</div><div class="empty-state-text">No comments yet</div></div>`;
+  }
+  return ticket.comments.map(_commentItemHTML).join('');
+}
+
+function _refreshComments() { document.getElementById('td-comments-list').innerHTML = _commentsListHTML(); }
+
+window.toggleReplies = function(id) {
+  if (_expandedReplies.has(id)) _expandedReplies.delete(id); else _expandedReplies.add(id);
+  _refreshComments();
+};
+window.startReply = function(id) {
+  _replyingTo = _replyingTo === id ? null : id;
+  _refreshComments();
+  setTimeout(() => document.getElementById(`reply-text-${id}`)?.focus(), 50);
+};
+window.submitReply = function(parentId) {
+  const inp = document.getElementById(`reply-text-${parentId}`);
+  const text = inp?.value?.trim();
+  if (!text) return;
+  const parent = ticket.comments.find(c => c.id === parentId);
+  if (!parent) return;
+  parent.replies = parent.replies || [];
+  parent.replies.push({ id: Date.now(), author: DATA.user.name, initials: DATA.user.initials, date: 'just now', text });
+  _expandedReplies.add(parentId);
+  _replyingTo = null;
+  _refreshComments();
+  showToast('Reply added', 'success');
+};
+window.submitComment = function() {
+  const input = document.getElementById('td-comment-input');
+  const text = input?.value?.trim();
+  if (!text) return;
+  ticket.comments.push({ id: ticket.comments.length + 1, author: DATA.user.name, initials: DATA.user.initials, time: 'just now', date: 'just now', text, isInternal: true, replies: [] });
+  input.value = '';
+  _refreshComments();
+  showToast('Comment added', 'success');
+};
+
+/* ============================================================
+   Activity — embedded section
+   ============================================================ */
+function _activityColor(type) {
+  return {
+    status: 'var(--activity-status)', priority: 'var(--activity-priority)',
+    comment: 'var(--activity-comment)', email: 'var(--activity-email)', create: 'var(--activity-create)',
+  }[type] || 'var(--activity-create)';
+}
+
+function _activityInnerHTML() {
+  const list = _actSort === 'latest' ? [...ticket.activity] : [...ticket.activity].reverse();
+  return `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:var(--sp-3) var(--sp-4) var(--sp-1);">
+      <span class="section-heading" style="padding:0;">Activity</span>
+      <div onclick="toggleActSort()" style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;color:var(--text-light);font-weight:600;">
+        ${_actSort === 'latest' ? 'Latest' : 'Oldest'} ${renderIcon('chevron_down', 14)}
+      </div>
+    </div>
+    <div style="padding:0 var(--sp-4);">
+      ${list.map(a => `
+        <div class="activity-item" style="padding:var(--sp-2) 0;">
+          <div class="activity-dot-col"><div class="activity-dot" style="background:${_activityColor(a.type)};"></div></div>
+          <div class="activity-content">
+            <div class="activity-title">${a.text.replace(/<\/?b>/g, '')}</div>
+            <div class="activity-meta">${a.actor} · ${a.date || a.time || ''}</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+window.toggleActSort = function() {
+  _actSort = _actSort === 'latest' ? 'oldest' : 'latest';
+  document.getElementById('td-activity-inner').innerHTML = _activityInnerHTML();
+};
+
+/* ============================================================
+   Jump-nav scroll + active-chip tracking
+   ============================================================ */
+window.jumpTo = function(id) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
+function _initJumpNavObserver() {
+  const body = document.getElementById('td-body');
+  const chips = document.getElementById('td-jumpnav');
+  if (!body || !chips) return;
+  const sections = ['sec-top', 'sec-comments', 'sec-activity', 'sec-rootcause']
+    .map(id => document.getElementById(id)).filter(Boolean);
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        chips.querySelectorAll('.td-chip').forEach(c => c.classList.remove('active'));
+        chips.querySelector(`[data-target="${entry.target.id}"]`)?.classList.add('active');
+      }
+    });
+  }, { root: body, rootMargin: '-10% 0px -70% 0px', threshold: 0 });
+
+  sections.forEach(s => observer.observe(s));
+}
+
+/* ============================================================
+   Init
+   ============================================================ */
+document.body.innerHTML = renderPhoneShell(renderDetail());
+_initJumpNavObserver();
+
+</script>
+</body>
+</html>
