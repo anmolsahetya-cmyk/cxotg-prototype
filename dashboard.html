@@ -521,9 +521,30 @@ function renderTicketCard(ticket, onclick) {
   `;
 }
 
+function getSnoozeDays() {
+  const v = parseInt(localStorage.getItem('snoozeDays'), 10);
+  return (v >= 1 && v <= 7) ? v : 1;
+}
+
+function _getSnoozeMap() {
+  try { return JSON.parse(localStorage.getItem('ticketSnoozes')) || {}; }
+  catch (e) { return {}; }
+}
+
+function _snoozeTicket(id) {
+  const map = _getSnoozeMap();
+  map[id] = Date.now() + getSnoozeDays() * 24 * 60 * 60 * 1000;
+  localStorage.setItem('ticketSnoozes', JSON.stringify(map));
+}
+
+function _isSnoozed(id) {
+  const map = _getSnoozeMap();
+  return !!map[id] && map[id] > Date.now();
+}
+
 function _quickActionTickets() {
   const ordered = DATA.tickets
-    .filter(t => t.statusId !== 3) // exclude Resolved
+    .filter(t => t.statusId !== 3 && !_isSnoozed(t.id)) // exclude Resolved and currently-snoozed
     .slice()
     .sort((a, b) => {
       if (b.priorityId !== a.priorityId) return b.priorityId - a.priorityId; // Critical > High > Medium > Low
