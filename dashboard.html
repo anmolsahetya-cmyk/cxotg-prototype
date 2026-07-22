@@ -181,6 +181,41 @@
       gap: 8px;
       padding: 8px 17.5px 4px;
     }
+    .qa-swipe-wrap {
+      position: relative;
+      overflow: hidden;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    .qa-swipe-bg {
+      position: absolute;
+      top: 0; bottom: 0;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 20px;
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      box-sizing: border-box;
+    }
+    .qa-swipe-bg-left {
+      left: 0;
+      background: #F6C140;
+      justify-content: flex-end;
+    }
+    .qa-swipe-bg-right {
+      left: 0;
+      background: #1b87e6;
+      justify-content: flex-start;
+    }
+    .qa-swipe-fg {
+      position: relative;
+      background: #fff;
+      touch-action: pan-y;
+    }
 
     /* Card title row */
     .card-title-row {
@@ -564,6 +599,88 @@ window.openTicket = function(id) {
   window.location.href = 'ticket-detail.html';
 };
 
+function _initQaSwipe() {
+  const THRESHOLD = 90;
+  const TAP_SLOP = 6;
+
+  document.querySelectorAll('.qa-swipe-wrap').forEach(wrap => {
+    const fg = wrap.querySelector('.qa-swipe-fg');
+    const bgLeft = wrap.querySelector('.qa-swipe-bg-left');
+    const bgRight = wrap.querySelector('.qa-swipe-bg-right');
+    const ticketId = wrap.dataset.ticketId;
+
+    let startX = 0, startY = 0, dx = 0, dragging = false, aborted = false;
+
+    fg.addEventListener('pointerdown', (e) => {
+      startX = e.clientX;
+      startY = e.clientY;
+      dx = 0;
+      dragging = true;
+      aborted = false;
+      fg.style.transition = 'none';
+      fg.setPointerCapture(e.pointerId);
+    });
+
+    fg.addEventListener('pointermove', (e) => {
+      if (!dragging || aborted) return;
+      const dy = e.clientY - startY;
+      dx = e.clientX - startX;
+      if (!aborted && Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > TAP_SLOP) {
+        aborted = true;
+        fg.style.transform = 'translateX(0)';
+        bgLeft.style.opacity = '0';
+        bgRight.style.opacity = '0';
+        return;
+      }
+      fg.style.transform = `translateX(${dx}px)`;
+      bgLeft.style.opacity = dx < 0 ? String(Math.min(1, -dx / THRESHOLD)) : '0';
+      bgRight.style.opacity = dx > 0 ? String(Math.min(1, dx / THRESHOLD)) : '0';
+    });
+
+    function finishDrag(e) {
+      if (!dragging) return;
+      dragging = false;
+      fg.style.transition = 'transform 0.2s ease';
+
+      if (aborted) {
+        fg.style.transform = 'translateX(0)';
+        bgLeft.style.opacity = '0';
+        bgRight.style.opacity = '0';
+        return;
+      }
+
+      if (Math.abs(dx) < TAP_SLOP) {
+        // Plain tap: setPointerCapture() above retargets the native 'click'
+        // event to `fg` itself, so it never reaches the card's inline
+        // onclick="openTicket(...)" attribute on the descendant element.
+        // Call it explicitly here instead.
+        fg.style.transform = 'translateX(0)';
+        bgLeft.style.opacity = '0';
+        bgRight.style.opacity = '0';
+        openTicket(ticketId);
+        return;
+      }
+
+      if (dx <= -THRESHOLD) {
+        fg.style.transform = 'translateX(-100%)';
+        _snoozeTicket(ticketId);
+        const days = getSnoozeDays();
+        showToast(`Snoozed for ${days} day${days === 1 ? '' : 's'}`, 'success');
+        setTimeout(() => wrap.remove(), 200);
+      } else if (dx >= THRESHOLD) {
+        openTicket(ticketId);
+      } else {
+        fg.style.transform = 'translateX(0)';
+        bgLeft.style.opacity = '0';
+        bgRight.style.opacity = '0';
+      }
+    }
+
+    fg.addEventListener('pointerup', finishDrag);
+    fg.addEventListener('pointercancel', finishDrag);
+  });
+}
+
 /* ── Main render ──────────────────────────── */
 function renderDashboard() {
   const nps = DATA.nps;
@@ -723,7 +840,13 @@ function renderDashboard() {
         <!-- Quick Action -->
         <div class="qa-title">Quick Action</div>
         <div class="qa-list">
-          ${_quickActionTickets().map(t => renderTicketCard(t, `openTicket('${t.id}')`)).join('')}
+          ${_quickActionTickets().map(t => `
+            <div class="qa-swipe-wrap" data-ticket-id="${t.id}">
+              <div class="qa-swipe-bg qa-swipe-bg-left">Snooze ${renderIcon('history', 16)}</div>
+              <div class="qa-swipe-bg qa-swipe-bg-right">${renderIcon('chevron_right', 16)} Open</div>
+              <div class="qa-swipe-fg">${renderTicketCard(t, `openTicket('${t.id}')`)}</div>
+            </div>
+          `).join('')}
         </div>
 
         <div style="height:16px;"></div>
@@ -848,6 +971,7 @@ function onSegmentSelect(id, name) {
 
 /* ── Init ───────────────────────────────── */
 document.body.innerHTML = renderPhoneShell(renderDashboard(), 'dashboard');
+_initQaSwipe();
 </script>
 </body>
 </html>
