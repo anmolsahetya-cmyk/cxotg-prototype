@@ -457,7 +457,8 @@ const _STA_STYLE  = [
   'background:#1b87e6;color:#fff;border:none;',
 ];
 const _STA_LABELS = ['New', 'Open', 'Escalated', 'Resolved'];
-const _QA_TAB_STATUS_ORDER = [2, 0, 1, 3]; // Escalated, New, Open, Resolved
+// Quick Action ordering: priority (Critical>High>Medium>Low), then status (Escalated>Open>New). Resolved is excluded.
+const _QA_STATUS_RANK = { 2: 0, 1: 1, 0: 2 }; // Escalated, Open, New
 
 function _shortDate(dateStr) {
   if (!dateStr) return '';
@@ -521,10 +522,13 @@ function renderTicketCard(ticket, onclick) {
 }
 
 function _quickActionTickets() {
-  let ordered = [];
-  _QA_TAB_STATUS_ORDER.forEach(statusId => {
-    ordered = ordered.concat(DATA.tickets.filter(t => t.statusId === statusId));
-  });
+  const ordered = DATA.tickets
+    .filter(t => t.statusId !== 3) // exclude Resolved
+    .slice()
+    .sort((a, b) => {
+      if (b.priorityId !== a.priorityId) return b.priorityId - a.priorityId; // Critical > High > Medium > Low
+      return _QA_STATUS_RANK[a.statusId] - _QA_STATUS_RANK[b.statusId]; // Escalated > Open > New
+    });
   const count = getQaCount();
   return ordered.slice(0, count);
 }
