@@ -842,6 +842,45 @@ textarea.input-field {
 }
 .comment-input:focus { border-color: var(--accent); background: white; }
 
+/* ----- App bar: segment selector + notification bell (Dashboard / Closedloop) ----- */
+.app-bar {
+  background: #fff;
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.app-bar-bordered { border-bottom: 1px solid #E4E4E4; }
+.app-bar-bell {
+  background: none;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  color: #1B3380;
+  flex-shrink: 0;
+}
+.app-bar-bell-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: #E03C3C;
+  border-radius: 10px;
+  min-width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  font-family: var(--font);
+  padding: 0 4px;
+}
+
 /* ----- Segment selector pill (Dashboard / Closedloop app bars) ----- */
 .seg-lean {
   display: flex;
@@ -866,6 +905,30 @@ textarea.input-field {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* ----- Date filter button (Dashboard / Closedloop app bars) ----- */
+.date-filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  border: 1px solid #eef0f3;
+  background: #F8FAFC;
+  border-radius: 20px;
+  padding: 0 12px;
+  cursor: pointer;
+  font-family: var(--font);
+  flex: 1;
+  min-width: 0;
+}
+.date-filter-btn-label {
+  font-size: 13.5px;
+  color: #404A5B;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ----- Bottom navigation ----- */

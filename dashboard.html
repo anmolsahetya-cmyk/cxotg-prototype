@@ -12,13 +12,6 @@
       background: #fff;
       border-bottom: 1px solid #E4E4E4;
     }
-    .dash-header-nav {
-      display: flex;
-      align-items: center;
-      padding: 10px 12px 10px;
-      gap: 8px;
-      min-height: 56px;
-    }
     .dash-title-block {
       flex: 1;
       display: flex;
@@ -44,35 +37,6 @@
       color: rgba(255,255,255,0.85);
       line-height: 1.3;
     }
-    .dash-bell-btn {
-      background: none;
-      border: none;
-      padding: 4px;
-      cursor: pointer;
-      position: relative;
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .dash-bell-badge {
-      position: absolute;
-      top: 0;
-      right: 0;
-      background: #E53935;
-      color: #fff;
-      font-size: 9px;
-      font-weight: 700;
-      border-radius: 8px;
-      min-width: 16px;
-      height: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0 3px;
-      line-height: 1;
-    }
-
     /* ── Date filter bar ─────────────────────── */
     .dash-date-bar {
       background: #fff;
@@ -82,6 +46,16 @@
       align-items: stretch;
       gap: 8px;
       border-top: 1px solid rgba(0,0,0,0.08);
+    }
+    /* The shared component's flex:1 sets flex-basis:0%, which hijacks the
+       *main* axis size — harmless in Closedloop's row layout (main axis is
+       horizontal, so the button's explicit height:40px is a cross-axis
+       property and stays intact), but here the bar is a column, so height
+       IS the main axis and flex-basis:0% overrides height:40px, collapsing
+       it. Reset flex so height applies normally; align-items:stretch above
+       still stretches it to full row width. */
+    .dash-date-bar .date-filter-btn {
+      flex: 0 0 auto;
     }
     .seg-pill {
       display: flex;
@@ -101,20 +75,6 @@
     .seg-pill-eyebrow { font-size: 11.5px; color: #909090; }
     .seg-pill-value { font-size: 15px; color: #404A5B; font-weight: 600; margin-top: 1px; }
     .seg-pill:active { background: #F3F5F8; }
-    .date-txt-btn {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 6px;
-      border: none;
-      background: none;
-      padding: 4px 0;
-      cursor: pointer;
-      font-size: 13px;
-      color: #1b87e6;
-      font-family: var(--font);
-      width: 100%;
-    }
 
     /* ── Scroll body ─────────────────────────── */
     .dash-body {
@@ -384,24 +344,11 @@
 
 let dashState = {
   segment: DATA.currentSegment,
+  dateKey: 'all',
+  dateStart: DATA.dateRangeStart,
+  dateEnd: DATA.dateRangeEnd,
   dateRange: DATA.dateRangeLabel,
 };
-
-/* ── Date filter state ──────────────────── */
-let dfState = {
-  tab: 'month',
-  selectedMonth: 'Last 30 days',
-  startDate: 'Jun 29, 2022',
-  endDate: 'Jun 29, 2026',
-};
-
-const MONTH_OPTIONS = [
-  'Last 30 days',
-  'This month',
-  'Last month',
-  'Last 3 months',
-  'Last 6 months',
-];
 
 /* ── NPS semicircle gauge SVG ─────────────────────────────────────
    viewBox: 300×175  cx=150 cy=155  outerR=115 innerR=78
@@ -690,26 +637,16 @@ function renderDashboard() {
 
       <!-- App bar -->
       <div class="dash-header">
-        <div class="dash-header-nav">
-          ${renderSegmentSelector(dashState.segment, 'dash-segment-label', "openSegmentSheet(dashState.segment, onSegmentSelect)")}
-
-          <button class="dash-bell-btn" onclick="window.location.href='notifications.html'">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" fill="#1B3380"/>
-            </svg>
-            <span class="dash-bell-badge">${DATA.notificationCount}</span>
-          </button>
-        </div>
+        ${renderAppBar({
+          segment: dashState.segment,
+          segmentLabelId: 'dash-segment-label',
+          onSegmentClick: "openSegmentSheet(dashState.segment, onSegmentSelect)",
+          notificationCount: DATA.notificationCount,
+        })}
 
         <!-- Date filter bar -->
         <div class="dash-date-bar">
-          <button class="date-txt-btn" onclick="openDateSheet()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="3" y="4" width="18" height="17" rx="2" stroke="#1b87e6" stroke-width="2"/>
-              <path d="M3 9h18M8 2v4M16 2v4" stroke="#1b87e6" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-            <span id="dash-date-label">${dashState.dateRange}</span>
-          </button>
+          ${renderDateFilterButton(dashState.dateRange, 'dash-date-label', "openDateFilterSheet({ key: dashState.dateKey, startISO: dashState.dateStart, endISO: dashState.dateEnd }, onDashDateApply)")}
         </div>
       </div>
 
@@ -860,95 +797,15 @@ function renderDashboard() {
   `;
 }
 
-/* ── Date filter — full-screen overlay ──── */
-function openDateSheet() {
-  const overlay = document.createElement('div');
-  overlay.id = 'df-overlay';
-  overlay.style.cssText = 'position:absolute;top:0;left:0;right:0;bottom:0;z-index:200;background:#1B3380;display:flex;flex-direction:column;';
-  overlay.innerHTML = renderDateFilter();
-  document.getElementById('screen').appendChild(overlay);
-}
-
-function closeDateFilter() {
-  const el = document.getElementById('df-overlay');
-  if (el) el.remove();
-}
-
-function renderDateFilter() {
-  const isCustom = dfState.tab === 'custom';
-
-  const monthTabHTML = MONTH_OPTIONS.map(opt => {
-    const active = opt === dfState.selectedMonth;
-    return `<div
-      onclick="window._dfSelectMonth('${opt}')"
-      style="padding:20px 0;font-size:18px;color:${active ? '#1b87e6' : '#545E6B'};border-bottom:1px solid rgba(0,0,0,0.09);cursor:pointer;font-family:var(--font);"
-    >${opt}</div>`;
-  }).join('');
-
-  const customTabHTML = `
-    <div style="padding:28px 0 0;">
-      <div style="font-size:18px;color:#545E6B;font-family:var(--font);">Start date</div>
-      <div style="font-size:15px;color:#545E6B;margin-top:6px;padding-bottom:14px;font-family:var(--font);">${dfState.startDate}</div>
-    </div>
-    <div style="height:1px;background:rgba(0,0,0,0.12);"></div>
-    <div style="padding:28px 0 0;">
-      <div style="font-size:18px;color:#545E6B;font-family:var(--font);">End date</div>
-      <div style="font-size:15px;color:#545E6B;margin-top:6px;padding-bottom:14px;font-family:var(--font);">${dfState.endDate}</div>
-    </div>
-    <div style="height:1px;background:rgba(0,0,0,0.12);"></div>
-  `;
-
-  return `
-    <div style="height:8px;flex-shrink:0;"></div>
-    <div style="flex:1;background:#fff;border-radius:12px 12px 0 0;display:flex;flex-direction:column;overflow:hidden;">
-
-      <!-- Tabs -->
-      <div style="display:flex;flex-shrink:0;border-bottom:1px solid rgba(0,0,0,0.09);">
-        <div onclick="window._dfTab('month')" style="flex:1;text-align:center;padding:18px 0;font-size:18px;color:#545E6B;position:relative;cursor:pointer;font-family:var(--font);">
-          Month
-          ${!isCustom ? '<div style="position:absolute;bottom:0;left:0;right:0;height:2.5px;background:#1b87e6;border-radius:2px 2px 0 0;"></div>' : ''}
-        </div>
-        <div onclick="window._dfTab('custom')" style="flex:1;text-align:center;padding:18px 0;font-size:18px;color:#545E6B;position:relative;cursor:pointer;font-family:var(--font);">
-          Custom
-          ${isCustom ? '<div style="position:absolute;bottom:0;left:0;right:0;height:2.5px;background:#1b87e6;border-radius:2px 2px 0 0;"></div>' : ''}
-        </div>
-      </div>
-
-      <!-- Content -->
-      <div style="flex:1;overflow-y:auto;padding:0 16px;">
-        ${isCustom ? customTabHTML : monthTabHTML}
-      </div>
-
-      <!-- Apply -->
-      <button
-        onclick="window._dfApply()"
-        style="flex-shrink:0;background:#1b87e6;color:#fff;font-size:18px;font-family:var(--font);border:none;height:56px;cursor:pointer;font-weight:500;letter-spacing:0.2px;"
-      >Apply</button>
-    </div>
-  `;
-}
-
-window._dfTab = function(tab) {
-  dfState.tab = tab;
-  const el = document.getElementById('df-overlay');
-  if (el) el.innerHTML = renderDateFilter();
-};
-
-window._dfSelectMonth = function(opt) {
-  dfState.selectedMonth = opt;
-  const el = document.getElementById('df-overlay');
-  if (el) el.innerHTML = renderDateFilter();
-};
-
-window._dfApply = function() {
-  const label = dfState.tab === 'custom'
-    ? dfState.startDate + ' - ' + dfState.endDate
-    : dfState.selectedMonth;
-  dashState.dateRange = label;
+/* ── Date filter — shared bottom sheet (shared/components.js) ──── */
+function onDashDateApply(applied) {
+  dashState.dateKey = applied.key;
+  dashState.dateStart = applied.startISO;
+  dashState.dateEnd = applied.endISO;
+  dashState.dateRange = applied.label;
   const el = document.getElementById('dash-date-label');
-  if (el) el.textContent = label;
-  closeDateFilter();
-};
+  if (el) el.textContent = applied.label;
+}
 
 /* ── Carousel dot sync ───────────────────── */
 window.onCarouselScroll = function() {

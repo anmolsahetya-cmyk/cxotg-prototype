@@ -33,6 +33,8 @@ const DATA = {
   /* ----- Dashboard state defaults ----- */
   currentSegment: 'Retail - North',
   dateRangeLabel: 'Jun 29, 2022 - Jun 29, 2026',
+  dateRangeStart: '2022-06-29', // ISO bounds for the "All time" default — kept in sync with dateRangeLabel
+  dateRangeEnd: '2026-06-29',
   notificationCount: 44,
 
   /* ----- NPS Dashboard Metrics ----- */
