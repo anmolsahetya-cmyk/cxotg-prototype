@@ -125,6 +125,11 @@
       padding: var(--sp-3) 0; margin-top: var(--sp-1); border-top: 1px solid var(--divider);
       font-size: 13px; font-weight: 600; color: var(--accent);
     }
+
+    /* ----- Description show more/less ----- */
+    .td-desc-text { font-size: var(--text-sm); color: var(--text); line-height: 1.5; }
+    .td-desc-text.clamped { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+    .td-desc-toggle { font-size: 13px; font-weight: 600; color: var(--accent); cursor: pointer; margin-top: var(--sp-2); }
   </style>
 </head>
 <body>
@@ -149,6 +154,8 @@ const _crcExpanded = new Set();
 const _crcSelected = new Set();
 let _otherChecked = false;
 let _otherText = '';
+let _descExpanded = false;
+let _descOverflows = false;
 
 /* ============================================================
    Clipboard helper
@@ -211,15 +218,17 @@ function renderDetail() {
             <div class="td-customer-row">
               ${renderAvatar(ticket.customer, '#CC6677', 'lg')}
               <div style="min-width:0;">
-                <div class="td-customer-name">${ticket.customer}</div>
+                <div class="td-customer-name">${ticket.customer || 'Anonymous'}</div>
                 <div class="td-customer-email">${ticket.email}</div>
               </div>
             </div>
             <div class="td-customer-actions">
-              <div class="btn btn-outline btn-sm" onclick="showToast('Calling ${ticket.customer}…','info')">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                Call
-              </div>
+              ${ticket.phone ? `
+                <div class="btn btn-outline btn-sm" onclick="showToast('Calling ${ticket.customer || 'Anonymous'}…','info')">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                  Call
+                </div>
+              ` : ''}
               <div class="btn btn-outline btn-sm" onclick="window.location.href='send-email.html'">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16v16H4z"/><path d="m22 6-10 7L2 6"/></svg>
                 Email
@@ -241,9 +250,9 @@ function renderDetail() {
 
           <div class="card" style="margin:var(--sp-2) var(--sp-4);padding:var(--sp-3) var(--sp-4);">
             <div class="section-heading" style="padding:0 0 6px;">Description</div>
-            <div style="font-size:var(--text-sm);color:var(--text);line-height:1.5;">${ticket.description || ''}</div>
+            <div id="td-desc-wrap">${_descriptionHTML()}</div>
             ${ticket.tags?.length ? `
-              <div class="td-ai-tag-label">AI tags · tap to filter Closedloop</div>
+              <div class="td-ai-tag-label">AI tags</div>
               <div class="td-ai-tag-wrap">
                 ${ticket.tags.map(t => `<span class="td-ai-tag-chip" onclick="filterByTag('${t.replace(/'/g, "\\'")}')">${t}</span>`).join('')}
               </div>
@@ -273,6 +282,31 @@ function renderDetail() {
     </div>
   `;
 }
+
+/* ============================================================
+   Description — show more/less
+   ============================================================ */
+function _descriptionHTML() {
+  const text = ticket.description || '';
+  return `
+    <div class="td-desc-text${_descExpanded ? '' : ' clamped'}" id="td-desc-text">${text}</div>
+    <div class="td-desc-toggle" id="td-desc-toggle" style="display:none;" onclick="toggleDescription()">${_descExpanded ? 'Show less' : '…Show more'}</div>
+  `;
+}
+
+function _refreshDescOverflow() {
+  const el = document.getElementById('td-desc-text');
+  const toggle = document.getElementById('td-desc-toggle');
+  if (!el || !toggle) return;
+  if (!_descExpanded) _descOverflows = el.scrollHeight > el.clientHeight + 1;
+  toggle.style.display = _descOverflows ? 'block' : 'none';
+}
+
+window.toggleDescription = function() {
+  _descExpanded = !_descExpanded;
+  document.getElementById('td-desc-wrap').innerHTML = _descriptionHTML();
+  _refreshDescOverflow();
+};
 
 /* ============================================================
    More sheet (Share, Delete)
@@ -316,7 +350,7 @@ function _shareSheetBodyHTML() {
         <span class="status-pill ${s.cssClass}">${s.label}</span>
       </div>
       <div class="td-share-field"><span>Priority</span><span class="td-share-value">${_priorityFlagSVG(_PRIORITY_COLORS[ticket.priorityId], 15)}${p.label}</span></div>
-      <div class="td-share-field"><span>Customer:</span><span class="td-share-value">${ticket.customer}</span></div>
+      <div class="td-share-field"><span>Customer:</span><span class="td-share-value">${ticket.customer || 'Anonymous'}</span></div>
       <div class="td-share-field"><span>Assigned to:</span><span class="td-share-value">${assignee.name}</span></div>
       <div class="td-share-field"><span>Current segment:</span><span class="td-share-value">${segment.name}</span></div>
       <div class="td-share-field"><span>Created on:</span><span class="td-share-value">${formatDate(ticket.issueDate)}</span></div>
@@ -462,7 +496,7 @@ function _buildShareCanvas() {
   }
 
   drawField('Priority', p.label, true);
-  drawField('Customer:', ticket.customer, false);
+  drawField('Customer:', ticket.customer || 'Anonymous', false);
   drawField('Assigned to:', assignee.name, false);
   drawField('Current segment:', segment.name, false);
   drawField('Created on:', formatDate(ticket.issueDate), false);
@@ -519,7 +553,7 @@ window.doShareTicket = function() {
   canvas.toBlob(async (blob) => {
     if (!blob) { showToast('Could not generate image', 'error'); return; }
     const file = new File([blob], `ticket-${ticket.id}.png`, { type: 'image/png' });
-    const shareText = `Ticket #${ticket.id.replace('TKT-', '')} — ${ticket.customer}`;
+    const shareText = `Ticket #${ticket.id.replace('TKT-', '')} — ${ticket.customer || 'Anonymous'}`;
 
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       try {
@@ -908,7 +942,8 @@ function _commentsSummaryHTML() {
       <div class="card td-summary-card" onclick="openCommentsSheet()">
         <div class="empty-state" style="padding:var(--sp-4) 0;">
           <div class="empty-state-icon" style="font-size:28px;">💬</div>
-          <div class="empty-state-text" style="font-size:var(--text-sm);">No comments yet — tap to add one</div>
+          <div class="empty-state-text" style="font-size:var(--text-sm);">No comments yet</div>
+          <div class="btn btn-primary btn-sm" onclick="event.stopPropagation();openCommentsSheet(true)">Add comment</div>
         </div>
       </div>`;
   }
@@ -934,8 +969,9 @@ function _refreshComments() {
 }
 
 /* ----- Dedicated Comments bottom sheet ----- */
-window.openCommentsSheet = function() {
+window.openCommentsSheet = function(focusInput) {
   openSheet('comments', _commentsSheetBodyHTML(), 'Comments');
+  if (focusInput) setTimeout(() => document.getElementById('td-comment-input')?.focus(), 50);
 };
 
 function _commentsSheetBodyHTML() {
@@ -1006,8 +1042,17 @@ function _activityRowHTML(a) {
 
 /* ----- Inline summary card (main page) — latest 2 events only ----- */
 function _activitySummaryHTML() {
-  const latest = ticket.activity.slice(0, 2);
   const count = ticket.activity.length;
+  if (!count) {
+    return `
+      <div class="card td-summary-card" onclick="openActivitySheet()">
+        <div class="empty-state" style="padding:var(--sp-4) 0;">
+          <div class="empty-state-icon" style="font-size:28px;">🕓</div>
+          <div class="empty-state-text" style="font-size:var(--text-sm);">No activity yet</div>
+        </div>
+      </div>`;
+  }
+  const latest = ticket.activity.slice(0, 2);
   return `
     <div class="card td-summary-card" onclick="openActivitySheet()" style="padding:var(--sp-1) var(--sp-4) 0;">
       ${latest.map(_activityRowHTML).join('')}
@@ -1021,6 +1066,9 @@ window.openActivitySheet = function() {
 };
 
 function _activitySheetBodyHTML() {
+  if (!ticket.activity.length) {
+    return `<div class="empty-state" style="padding:var(--sp-6) 0;"><div class="empty-state-icon">🕓</div><div class="empty-state-text">No activity yet</div></div>`;
+  }
   const list = _actSort === 'latest' ? [...ticket.activity] : [...ticket.activity].reverse();
   return `
     <div style="display:flex;justify-content:flex-end;padding:var(--sp-2) var(--sp-4);">
@@ -1082,6 +1130,7 @@ function _initJumpNavObserver() {
    ============================================================ */
 document.body.innerHTML = renderPhoneShell(renderDetail());
 _initJumpNavObserver();
+_refreshDescOverflow();
 
 </script>
 </body>
