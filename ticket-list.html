@@ -32,20 +32,6 @@
     .cl-pill-text { flex: 1; min-width: 0; text-align: left; }
     .cl-pill-eyebrow { font-size: 11.5px; color: #909090; }
     .cl-pill-value { font-size: 15px; color: #404A5B; font-weight: 600; margin-top: 1px; }
-    .cl-date-btn {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 6px;
-      border: none;
-      background: none;
-      padding: 4px 0;
-      cursor: pointer;
-      font-size: 13px;
-      color: #1b87e6;
-      font-family: var(--font);
-      width: 100%;
-    }
 
     /* Segmented tab control */
     .seg-ctl {
@@ -95,6 +81,77 @@
     }
     .seg-ctl-item.active .seg-ctl-count { background: #1b87e6; color: #fff; }
 
+    /* Top bar: date + search + filter on one row */
+    .cl-topbar {
+      background: #fff;
+      border-bottom: 1px solid #E4E4E4;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      flex-shrink: 0;
+    }
+    .cl-icon-btn {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 20px;
+      background: #F3F4F6;
+      border: 1px solid #e2e4e8;
+      cursor: pointer;
+      flex-shrink: 0;
+      padding: 0;
+    }
+    .cl-icon-btn.active { background: #EAF3FE; border-color: #1b87e6; }
+    .cl-icon-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      min-width: 16px;
+      height: 16px;
+      border-radius: 8px;
+      background: #1b87e6;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+      font-family: var(--font);
+    }
+    .cl-search-field {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      height: 40px;
+      background: #F3F4F6;
+      border: 1px solid #e2e4e8;
+      border-radius: 20px;
+      padding: 0 12px;
+      flex: 1;
+      min-width: 0;
+    }
+    .cl-search-input::placeholder { font-size: 13px; color: #9B9B9B; }
+    .cl-cancel-btn {
+      display: flex;
+      align-items: center;
+      height: 40px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 15px;
+      color: #1b87e6;
+      font-family: var(--font);
+      font-weight: 600;
+      padding: 0 2px;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
     /* Toggle */
     .tgl { width: 50px; height: 28px; border-radius: 14px; background: #BDBDBD; position: relative; cursor: pointer; transition: background 200ms; flex-shrink: 0; }
     .tgl.on { background: #1b87e6; }
@@ -112,7 +169,12 @@
    ============================================================ */
 let clState = {
   segment: DATA.currentSegment,
+  dateKey: 'all',
+  dateStart: DATA.dateRangeStart,
+  dateEnd: DATA.dateRangeEnd,
+  dateRange: DATA.dateRangeLabel,
   searchQuery: '',
+  searchOpen: false,
   filters: { status: [], priority: [], type: [], tags: [], onlyMyTickets: true },
   filterCount: 1,
   visibleCount: 10,
@@ -153,6 +215,15 @@ function getFilteredTickets() {
   if (clState.filters.status.length)   tickets = tickets.filter(t => clState.filters.status.includes(t.statusId));
   if (clState.filters.priority.length) tickets = tickets.filter(t => clState.filters.priority.includes(t.priorityId));
   if (clState.filters.type.length)     tickets = tickets.filter(t => clState.filters.type.includes(t.typeId));
+
+  // Date range — sheet resolves quick ranges to real ISO bounds on apply,
+  // so filtering here is a direct comparison, no label parsing.
+  const start = new Date(clState.dateStart + 'T00:00:00');
+  const end = new Date(clState.dateEnd + 'T23:59:59.999');
+  tickets = tickets.filter(t => {
+    const d = new Date(t.issueDate);
+    return d >= start && d <= end;
+  });
   return tickets;
 }
 
@@ -242,45 +313,22 @@ function renderTicketCard(ticket, onclick) {
 function renderClosedLoop() {
   const tickets = getFilteredTickets();
   const visible = tickets.slice(0, clState.visibleCount);
-  const filterLabel = clState.filterCount > 0 ? `Filters (${clState.filterCount})` : 'Filters';
 
   return `
     <div class="screen-content">
 
       <!-- App bar -->
-      <div style="background:#fff;border-bottom:1px solid #E4E4E4;display:flex;align-items:center;padding:10px 18px;gap:12px;flex-shrink:0;">
-        ${renderSegmentSelector(clState.segment, 'cl-segment-label', "openSegmentSheet(clState.segment, onClSegmentSelect)")}
-        <button onclick="window.location.href='notifications.html'" style="background:none;border:none;cursor:pointer;position:relative;display:flex;align-items:center;padding:4px;">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1B3380" stroke-width="2" stroke-linecap="round">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-          </svg>
-          <div style="position:absolute;top:-2px;right:-2px;background:#E03C3C;border-radius:10px;min-width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;font-family:var(--font);padding:0 4px;">${DATA.notificationCount}</div>
-        </button>
-      </div>
+      ${renderAppBar({
+        segment: clState.segment,
+        segmentLabelId: 'cl-segment-label',
+        onSegmentClick: "openSegmentSheet(clState.segment, onClSegmentSelect)",
+        notificationCount: DATA.notificationCount,
+        bordered: true,
+      })}
 
-      <!-- Date filter row -->
-      <div style="background:#fff;border-bottom:1px solid #E4E4E4;display:flex;flex-direction:column;align-items:stretch;padding:10px 16px;gap:8px;flex-shrink:0;">
-        <button class="cl-date-btn" onclick="showToast('Use Dashboard to adjust date range','info')">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1b87e6" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          <span>${DATA.dateRangeLabel}</span>
-        </button>
-      </div>
-
-      <!-- Search + Filter row -->
-      <div style="background:#fff;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;padding:10px 16px;gap:10px;flex-shrink:0;">
-        <div style="display:flex;align-items:center;gap:8px;background:#F3F4F6;border:1px solid #e2e4e8;border-radius:22px;padding:9px 14px;flex:1;min-width:0;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9B9B9B" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" placeholder="Search by #ID, name, email"
-            value="${clState.searchQuery}"
-            oninput="onSearch(this.value)"
-            id="tl-search"
-            style="flex:1;min-width:0;border:none;background:transparent;font-size:15px;color:#545E6B;font-family:var(--font);outline:none;"/>
-        </div>
-        <button onclick="openFilterSheet()" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;padding:4px;white-space:nowrap;flex-shrink:0;">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="#1b87e6"><polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46 22,3"/></svg>
-          <span style="font-size:15px;font-weight:600;font-family:var(--font);color:#1b87e6;">${filterLabel}</span>
-        </button>
+      <!-- Date + Search + Filter row -->
+      <div class="cl-topbar" id="cl-toprow">
+        ${_topBarHTML()}
       </div>
 
       <!-- Segmented tabs (status) -->
@@ -304,6 +352,33 @@ function renderClosedLoop() {
   `;
 }
 
+function _topBarHTML() {
+  if (clState.searchOpen) {
+    return `
+      <div class="cl-search-field">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9B9B9B" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="Search by #ID, name, email"
+          value="${clState.searchQuery}"
+          oninput="onSearch(this.value)"
+          id="tl-search"
+          class="cl-search-input"
+          style="flex:1;min-width:0;height:100%;border:none;background:transparent;font-size:15px;color:#545E6B;font-family:var(--font);outline:none;"/>
+      </div>
+      <button class="cl-cancel-btn" onclick="closeSearch()">Cancel</button>
+    `;
+  }
+  return `
+    ${renderDateFilterButton(clState.dateRange, 'cl-date-label', "openDateFilterSheet({ key: clState.dateKey, startISO: clState.dateStart, endISO: clState.dateEnd }, onClDateApply)")}
+    <button class="cl-icon-btn" onclick="openSearch()" aria-label="Search">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#545E6B" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </button>
+    <button class="cl-icon-btn${clState.filterCount > 0 ? ' active' : ''}" onclick="openFilterSheet()" aria-label="Filters">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="${clState.filterCount > 0 ? '#1b87e6' : '#545E6B'}"><polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46 22,3"/></svg>
+      ${clState.filterCount > 0 ? `<span class="cl-icon-badge">${clState.filterCount}</span>` : ''}
+    </button>
+  `;
+}
+
 function _segmentedControlHTML() {
   const idx = _TABS.findIndex(t => t.key === clState.tab);
   const counts = _TABS.map(t => DATA.tickets.filter(x => _TAB_STATUS_MAP[t.key].includes(x.statusId)).length);
@@ -320,13 +395,74 @@ function _segmentedControlHTML() {
   `;
 }
 
-function _ticketListInner(visible, tickets) {
-  if (!visible.length) return `
+const _TAB_EMPTY_COPY = {
+  escalated: { emoji: '✅', title: 'No escalated tickets', subtitle: 'Nothing urgent needs your attention right now.' },
+  new:       { emoji: '📥', title: 'No new tickets', subtitle: "You're all caught up." },
+  open:      { emoji: '🗂️', title: 'No open tickets', subtitle: 'Nothing currently in progress.' },
+  resolved:  { emoji: '🎉', title: 'No resolved tickets yet', subtitle: 'Resolved tickets will show up here.' },
+};
+
+function _emptyBtnStyle(filled) {
+  return filled
+    ? 'background:#1b87e6;border:none;color:#fff;font-size:14px;font-weight:600;font-family:var(--font);padding:10px 18px;border-radius:8px;cursor:pointer;'
+    : 'background:#fff;border:1.5px solid #1b87e6;color:#1b87e6;font-size:14px;font-weight:600;font-family:var(--font);padding:10px 18px;border-radius:8px;cursor:pointer;';
+}
+
+function _emptyStateHTML() {
+  const hasSearch = !!clState.searchQuery;
+  const hasChipFilters = !!(clState.filters.status.length || clState.filters.priority.length || clState.filters.type.length || (clState.filters.tags && clState.filters.tags.length));
+  const hasDateFilter = clState.dateKey !== 'all';
+  const hasCriteria = hasSearch || hasChipFilters || hasDateFilter;
+
+  // Bucket B — search / filters / date narrowed the list to zero
+  if (hasCriteria) {
+    const parts = [];
+    if (hasSearch) parts.push(`“${clState.searchQuery}”`);
+    if (hasChipFilters) parts.push(`${clState.filterCount} filter${clState.filterCount !== 1 ? 's' : ''}`);
+    if (hasDateFilter) parts.push(`the “${clState.dateRange}” date range`);
+
+    return `
+      <div style="padding:60px 24px;text-align:center;">
+        <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#C7CCD4" stroke-width="1.6" stroke-linecap="round" style="margin-bottom:16px;">
+          <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8.5" y1="8.5" x2="13.5" y2="13.5"/><line x1="13.5" y1="8.5" x2="8.5" y2="13.5"/>
+        </svg>
+        <div style="font-size:17px;font-weight:600;color:#404A5B;font-family:var(--font);">No matching tickets</div>
+        <div style="font-size:14px;color:#9B9B9B;font-family:var(--font);margin-top:8px;max-width:280px;margin-left:auto;margin-right:auto;">
+          No results for ${parts.join(' + ')}.
+        </div>
+        <div style="display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap;">
+          ${hasSearch ? `<button onclick="clearSearchOnly()" style="${_emptyBtnStyle(false)}">Clear search</button>` : ''}
+          ${(hasChipFilters || hasDateFilter) ? `<button onclick="resetAllFilters()" style="${_emptyBtnStyle(true)}">Reset filters</button>` : ''}
+        </div>
+      </div>`;
+  }
+
+  // Bucket C — no tickets exist in this segment at all, regardless of tab
+  if (!DATA.tickets.length) {
+    return `
+      <div style="padding:60px 24px;text-align:center;">
+        <div style="font-size:40px;margin-bottom:16px;">📭</div>
+        <div style="font-size:17px;font-weight:600;color:#404A5B;font-family:var(--font);">No tickets yet</div>
+        <div style="font-size:14px;color:#9B9B9B;font-family:var(--font);margin-top:8px;">Once tickets come in, they'll show up here.</div>
+        <a href="create-ticket.html" style="display:inline-flex;align-items:center;gap:6px;margin-top:20px;background:#1b87e6;color:#fff;font-size:15px;font-weight:600;font-family:var(--font);padding:12px 20px;border-radius:8px;text-decoration:none;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Create ticket
+        </a>
+      </div>`;
+  }
+
+  // Bucket A — no criteria active, this specific tab is just empty
+  const copy = _TAB_EMPTY_COPY[clState.tab] || _TAB_EMPTY_COPY.escalated;
+  return `
     <div style="padding:60px 24px;text-align:center;">
-      <div style="font-size:40px;margin-bottom:16px;">🎫</div>
-      <div style="font-size:17px;font-weight:600;color:#404A5B;font-family:var(--font);">No tickets found</div>
-      <div style="font-size:14px;color:#9B9B9B;font-family:var(--font);margin-top:8px;">Try adjusting your search or filters</div>
+      <div style="font-size:40px;margin-bottom:16px;">${copy.emoji}</div>
+      <div style="font-size:17px;font-weight:600;color:#404A5B;font-family:var(--font);">${copy.title}</div>
+      <div style="font-size:14px;color:#9B9B9B;font-family:var(--font);margin-top:8px;">${copy.subtitle}</div>
     </div>`;
+}
+
+function _ticketListInner(visible, tickets) {
+  if (!visible.length) return _emptyStateHTML();
   return visible.map(t => renderTicketCard(t, `openTicket('${t.id}')`)).join('') +
     (tickets.length > clState.visibleCount
       ? `<div style="padding:16px;text-align:center;cursor:pointer;color:#1b87e6;font-size:14px;font-weight:600;font-family:var(--font);" onclick="loadMore()">Load more (${tickets.length - clState.visibleCount} remaining)</div>`
@@ -337,6 +473,16 @@ function _ticketListInner(visible, tickets) {
 /* ============================================================
    Actions
    ============================================================ */
+window.onClDateApply = function(applied) {
+  clState.dateKey = applied.key;
+  clState.dateStart = applied.startISO;
+  clState.dateEnd = applied.endISO;
+  clState.dateRange = applied.label;
+  clState.visibleCount = 10;
+  refreshTopBar();
+  refreshList();
+};
+
 window.onClSegmentSelect = function(id, name) {
   clState.segment = name;
   const el = document.getElementById('cl-segment-label');
@@ -368,6 +514,51 @@ window.onSearch = function(val) {
   clState.visibleCount = 10;
   const tabsEl = document.getElementById('cl-tabs');
   if (tabsEl) tabsEl.style.display = val ? 'none' : '';
+  refreshList();
+};
+
+window.openSearch = function() {
+  clState.searchOpen = true;
+  refreshTopBar();
+  const inp = document.getElementById('tl-search');
+  if (inp) inp.focus();
+};
+
+window.closeSearch = function() {
+  clState.searchOpen = false;
+  clState.searchQuery = '';
+  clState.visibleCount = 10;
+  refreshTopBar();
+  const tabsEl = document.getElementById('cl-tabs');
+  if (tabsEl) tabsEl.style.display = '';
+  refreshList();
+};
+
+function refreshTopBar() {
+  const el = document.getElementById('cl-toprow');
+  if (el) el.innerHTML = _topBarHTML();
+}
+
+window.clearSearchOnly = function() {
+  clState.searchQuery = '';
+  clState.visibleCount = 10;
+  refreshTopBar();
+  const tabsEl = document.getElementById('cl-tabs');
+  if (tabsEl) tabsEl.style.display = '';
+  refreshList();
+  const inp = document.getElementById('tl-search');
+  if (inp) inp.focus();
+};
+
+window.resetAllFilters = function() {
+  clState.filters = { status: [], priority: [], type: [], tags: [], onlyMyTickets: false };
+  clState.filterCount = 0;
+  clState.dateKey = 'all';
+  clState.dateStart = DATA.dateRangeStart;
+  clState.dateEnd = DATA.dateRangeEnd;
+  clState.dateRange = DATA.dateRangeLabel;
+  clState.visibleCount = 10;
+  refreshTopBar();
   refreshList();
 };
 

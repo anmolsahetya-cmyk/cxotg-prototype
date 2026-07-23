@@ -299,6 +299,32 @@ function renderSegmentSelector(label, id, onclick) {
   `;
 }
 
+/* ----- App bar: segment selector + notification bell (Dashboard / Closedloop) -----
+   `bordered` draws the bottom divider itself — pass false when the caller's own
+   wrapping container (e.g. Dashboard's header block, which also contains the
+   date filter bar) already owns that border. */
+function renderAppBar({ segment, segmentLabelId, onSegmentClick, notificationCount, bordered = false }) {
+  return `
+    <div class="app-bar${bordered ? ' app-bar-bordered' : ''}">
+      ${renderSegmentSelector(segment, segmentLabelId, onSegmentClick)}
+      <button class="app-bar-bell" onclick="window.location.href='notifications.html'" aria-label="Notifications">
+        ${renderIcon('bell', 22)}
+        ${notificationCount ? `<span class="app-bar-bell-badge">${notificationCount}</span>` : ''}
+      </button>
+    </div>
+  `;
+}
+
+/* ----- Date filter button (Dashboard / Closedloop app bars) ----- */
+function renderDateFilterButton(label, id, onclick) {
+  return `
+    <button class="date-filter-btn" onclick="${onclick}">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1b87e6" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <span class="date-filter-btn-label" id="${id}">${label}</span>
+    </button>
+  `;
+}
+
 /* ----- Shared header component ----- */
 function renderHeader({ title, showBack = false, right = '' }) {
   return `
@@ -395,6 +421,203 @@ function getManager(id) {
 function getSegment(id) {
   return DATA.segments.find(s => s.id === id) || DATA.segments[0];
 }
+
+/* ----- Date filter sheet (Dashboard + Closedloop) -----
+   Single-screen bottom sheet: quick-range chips + always-visible custom
+   start/end fields (no tabs). Callers pass their current {key, startISO,
+   endISO} and get the same shape back on apply — the sheet resolves quick
+   ranges to real date boundaries itself, so callers never parse a label
+   back into dates. */
+const _DATE_QUICK_RANGES = [
+  { key: 'all',       label: 'All time' },
+  { key: 'last7',     label: 'Last 7 days' },
+  { key: 'last30',    label: 'Last 30 days' },
+  { key: 'thismonth', label: 'This month' },
+  { key: 'lastmonth', label: 'Last month' },
+  { key: 'last3',     label: 'Last 3 months' },
+  { key: 'last6',     label: 'Last 6 months' },
+];
+
+let _dateFilter = {
+  selectedKey: 'all',
+  startDate: DATA.dateRangeStart, // ISO (yyyy-mm-dd), bound to <input type="date">
+  endDate: DATA.dateRangeEnd,
+  onApply: null,
+};
+
+function _dfToISO(d) {
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function _dfFmt(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+/* Resolves a quick-range key to real {start, end} Date boundaries, relative to now. */
+function _dfResolveQuickRange(key) {
+  const now = new Date();
+  const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  switch (key) {
+    case 'last7': {
+      const s = new Date(now); s.setDate(s.getDate() - 7);
+      return { start: startOfDay(s), end: endOfToday };
+    }
+    case 'last30': {
+      const s = new Date(now); s.setDate(s.getDate() - 30);
+      return { start: startOfDay(s), end: endOfToday };
+    }
+    case 'thismonth':
+      return { start: new Date(now.getFullYear(), now.getMonth(), 1), end: endOfToday };
+    case 'lastmonth':
+      return {
+        start: new Date(now.getFullYear(), now.getMonth() - 1, 1),
+        end: new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999),
+      };
+    case 'last3':
+      return { start: startOfDay(new Date(now.getFullYear(), now.getMonth() - 3, now.getDate())), end: endOfToday };
+    case 'last6':
+      return { start: startOfDay(new Date(now.getFullYear(), now.getMonth() - 6, now.getDate())), end: endOfToday };
+    case 'all':
+    default:
+      return { start: new Date(DATA.dateRangeStart + 'T00:00:00'), end: new Date(DATA.dateRangeEnd + 'T23:59:59.999') };
+  }
+}
+
+function _dfLabelFor(key, startISO, endISO) {
+  if (key !== 'custom') {
+    const q = _DATE_QUICK_RANGES.find(r => r.key === key);
+    if (q) return q.label;
+  }
+  return `${_dfFmt(startISO)} - ${_dfFmt(endISO)}`;
+}
+
+function openDateFilterSheet(current, onApply) {
+  _dateFilter.selectedKey = (current && current.key) || 'all';
+  _dateFilter.startDate = (current && current.startISO) || DATA.dateRangeStart;
+  _dateFilter.endDate = (current && current.endISO) || DATA.dateRangeEnd;
+  _dateFilter.onApply = onApply;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'df-overlay';
+  overlay.style.cssText = 'position:absolute;inset:0;z-index:200;display:flex;flex-direction:column;justify-content:flex-end;';
+  overlay.innerHTML = _renderDateFilterSheet();
+  document.getElementById('screen').appendChild(overlay);
+}
+
+function closeDateFilterSheet() {
+  const el = document.getElementById('df-overlay');
+  if (el) el.remove();
+}
+
+function _redrawDateFilterSheet() {
+  const el = document.getElementById('df-overlay');
+  if (el) el.innerHTML = _renderDateFilterSheet();
+}
+
+function _renderDateFilterSheet() {
+  const chipsHTML = _DATE_QUICK_RANGES.map(r => {
+    const active = r.key === _dateFilter.selectedKey;
+    return `<div onclick="window._dfPickQuick('${r.key}')"
+      style="display:inline-flex;align-items:center;padding:9px 16px;border-radius:20px;font-size:14px;font-family:var(--font);cursor:pointer;user-select:none;${active ? 'background:#1B3380;color:#fff;' : 'background:#EEF3FB;color:#545E6B;'}">
+      ${r.label}
+    </div>`;
+  }).join('');
+
+  const isCustom = _dateFilter.selectedKey === 'custom';
+
+  return `
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,0.45);" onclick="closeDateFilterSheet()"></div>
+    <div style="background:#fff;border-radius:20px 20px 0 0;display:flex;flex-direction:column;max-height:88%;position:relative;z-index:1;" onclick="event.stopPropagation()">
+
+      <!-- Handle -->
+      <div style="display:flex;justify-content:center;padding:10px 0 0;flex-shrink:0;">
+        <div style="width:40px;height:4px;background:#DCDCDC;border-radius:2px;"></div>
+      </div>
+
+      <!-- Title row -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px 4px;flex-shrink:0;">
+        <span style="font-size:22px;font-weight:700;color:#404A5B;font-family:var(--font);">Filter by date</span>
+        <button onclick="closeDateFilterSheet()" style="background:none;border:none;cursor:pointer;width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:#545E6B;padding:0;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div style="flex:1;overflow-y:auto;padding:12px 20px 4px;">
+        <!-- Quick ranges -->
+        <div style="display:flex;flex-wrap:wrap;gap:8px;padding-bottom:18px;">
+          ${chipsHTML}
+        </div>
+
+        <div style="height:1px;background:#F0F0F0;margin-bottom:18px;"></div>
+
+        <!-- Custom range — always visible, editing either field switches selection to Custom -->
+        <div style="font-size:15px;font-weight:700;color:#404A5B;font-family:var(--font);margin-bottom:12px;">
+          Custom range${isCustom ? ' <span style="color:#1b87e6;font-weight:600;">(selected)</span>' : ''}
+        </div>
+        <div style="display:flex;gap:12px;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:12.5px;color:#909090;font-family:var(--font);margin-bottom:6px;">Start date</div>
+            <input type="date" value="${_dateFilter.startDate}" max="${_dateFilter.endDate}"
+              onchange="window._dfSetCustom('start', this.value)"
+              style="width:100%;padding:11px 10px;border:1px solid #E4E4E4;border-radius:8px;font-size:14px;color:#404A5B;font-family:var(--font);background:#fff;"/>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:12.5px;color:#909090;font-family:var(--font);margin-bottom:6px;">End date</div>
+            <input type="date" value="${_dateFilter.endDate}" min="${_dateFilter.startDate}"
+              onchange="window._dfSetCustom('end', this.value)"
+              style="width:100%;padding:11px 10px;border:1px solid #E4E4E4;border-radius:8px;font-size:14px;color:#404A5B;font-family:var(--font);background:#fff;"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div style="display:flex;gap:12px;padding:16px 20px 20px;flex-shrink:0;border-top:1px solid #F0F0F0;">
+        <button onclick="window._dfReset()" style="flex:1;height:52px;background:#fff;border:1.5px solid #1b87e6;border-radius:8px;color:#1b87e6;font-size:16px;font-family:var(--font);font-weight:600;cursor:pointer;">Reset</button>
+        <button onclick="window._dfApply()" style="flex:1;height:52px;background:#1b87e6;border:none;border-radius:8px;color:#fff;font-size:16px;font-family:var(--font);font-weight:600;cursor:pointer;">Apply</button>
+      </div>
+    </div>
+  `;
+}
+
+window._dfPickQuick = function(key) {
+  _dateFilter.selectedKey = key;
+  const bounds = _dfResolveQuickRange(key);
+  _dateFilter.startDate = _dfToISO(bounds.start);
+  _dateFilter.endDate = _dfToISO(bounds.end);
+  _redrawDateFilterSheet();
+};
+
+window._dfSetCustom = function(which, value) {
+  _dateFilter.selectedKey = 'custom';
+  if (which === 'start') {
+    _dateFilter.startDate = value;
+    if (_dateFilter.endDate < value) _dateFilter.endDate = value;
+  } else {
+    _dateFilter.endDate = value;
+    if (_dateFilter.startDate > value) _dateFilter.startDate = value;
+  }
+  _redrawDateFilterSheet();
+};
+
+window._dfReset = function() {
+  _dateFilter.selectedKey = 'all';
+  _dateFilter.startDate = DATA.dateRangeStart;
+  _dateFilter.endDate = DATA.dateRangeEnd;
+  _redrawDateFilterSheet();
+};
+
+window._dfApply = function() {
+  const key = _dateFilter.selectedKey;
+  const startISO = _dateFilter.startDate;
+  const endISO = _dateFilter.endDate;
+  const label = _dfLabelFor(key, startISO, endISO);
+  const onApply = _dateFilter.onApply;
+  closeDateFilterSheet();
+  if (onApply) onApply({ key, startISO, endISO, label });
+};
 
 /* ----- Segment selector sheet ----- */
 let _seg = { current: '', query: '', onSelect: null };
