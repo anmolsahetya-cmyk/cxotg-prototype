@@ -176,6 +176,7 @@ CX Manager, RetailCo International`,
       id: 'TKT-1041',
       customer: 'James Whitfield',
       email: 'j.whitfield@techcorp.com',
+      phone: '+1 (415) 555-0142',
       statusId: 2, // escalated
       priorityId: 3, // critical
       typeId: 1, // detractor alert
@@ -260,6 +261,7 @@ CX Manager, RetailCo International`,
       id: 'TKT-1043',
       customer: 'Robert Kim',
       email: 'r.kim@globalfinance.net',
+      phone: '+1 (212) 555-0198',
       statusId: 1, // open
       priorityId: 1, // medium
       typeId: 0,
@@ -575,6 +577,52 @@ CX Manager, RetailCo International`,
       ],
       rootCauses: [5],
       tags: ['Export', 'Excel', 'Bug'],
+    },
+    {
+      id: 'TKT-1056',
+      customer: null,
+      email: 'anonymous-web-visitor@no-reply.pearlcx.com',
+      statusId: 0, // new
+      priorityId: 1, // medium
+      typeId: 0,
+      assigneeId: 1,
+      segmentId: 3,
+      npsLabel: 'Passive',
+      issueDate: '2026-07-10',
+      isOverdue: false,
+      title: 'Unable to submit feedback form on public survey link',
+      description: 'Submitted via the anonymous public survey link — no account or contact details on file. The submit button appears greyed out on mobile Safari after answering the third question.',
+      comments: [],
+      activity: [],
+      tags: ['Public Survey', 'Mobile'],
+    },
+    {
+      id: 'TKT-1057',
+      customer: 'Daniela Ferreira',
+      email: 'd.ferreira@braziltech.com.br',
+      phone: '+55 (11) 5555-0177',
+      statusId: 1, // open
+      priorityId: 2, // high
+      typeId: 0,
+      assigneeId: 2,
+      segmentId: 2,
+      npsScore: 3,
+      npsLabel: 'Detractor',
+      npsVerbatim: 'The dashboard has been unusable for over a week and support keeps closing my tickets without a real fix.',
+      issueDate: '2026-07-05',
+      isOverdue: true,
+      title: 'Analytics dashboard fails to load for large accounts',
+      description: 'Customer manages one of our largest accounts in the LATAM region and has reported that the analytics dashboard has been intermittently failing to load for the past nine days, showing a blank white screen with no error message roughly six out of every ten attempts. The issue appears to correlate with accounts that have more than 50,000 survey responses in a single project, suggesting a possible timeout or memory limit being hit on the backend aggregation query. The customer has already tried clearing their browser cache, using a different browser (both Chrome and Firefox were tested), and accessing from a different network, all with the same intermittent failure pattern. This is affecting their ability to prepare a quarterly board report due in five days, and they have escalated twice through their account manager. Engineering was looped in on July 3rd but has not yet reproduced the issue in a staging environment, possibly because staging does not have a project of comparable size. Customer is requesting either an expedited fix or a manual data export as a stopgap so they can build the report outside the platform.',
+      comments: [
+        { id: 1, author: 'Marcus Rivera', initials: 'MR', time: '1 day ago', date: 'Jul 12, 2026', text: 'Looped in engineering — trying to reproduce with a large synthetic dataset in staging.', isInternal: true, replies: [] },
+      ],
+      activity: [
+        { id: 1, text: 'Manual ticket created', actor: 'Marcus Rivera', date: 'Jul 5, 2026', type: 'create' },
+        { id: 2, text: 'Status changed from New → Open', actor: 'Marcus Rivera', date: 'Jul 5, 2026', type: 'status' },
+        { id: 3, text: 'Escalated by account manager', actor: 'Marcus Rivera', date: 'Jul 9, 2026', type: 'status' },
+        { id: 4, text: 'A new comment has been added for ticket#TKT-1057', actor: 'Marcus Rivera', date: 'Jul 12, 2026', type: 'comment' },
+      ],
+      tags: ['Performance', 'Dashboard', 'Enterprise'],
     },
   ],
 

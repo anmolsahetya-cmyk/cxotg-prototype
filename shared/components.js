@@ -350,7 +350,7 @@ function renderTicketCard(ticket, onclick = '') {
         <span class="ticket-id">${ticket.id}</span>
         <span class="ticket-date">${formatDate(ticket.issueDate)}</span>
       </div>
-      <div class="ticket-customer">${ticket.customer}</div>
+      <div class="ticket-customer">${ticket.customer || 'Anonymous'}</div>
       <div class="ticket-email">${ticket.email}</div>
       ${ticket.comments.length ? `<div class="ticket-comment">${ticket.comments[ticket.comments.length - 1].text}</div>` : ''}
       <div class="ticket-bottom">
@@ -372,6 +372,7 @@ function renderTicketCard(ticket, onclick = '') {
 
 /* ----- Avatar helper ----- */
 function renderAvatar(name, color = '#CC6677', size = '') {
+  if (!name) return `<div class="avatar${size ? ` avatar-${size}` : ''}" style="background:${color}">?</div>`;
   const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
   return `<div class="avatar${size ? ` avatar-${size}` : ''}" style="background:${color}">${initials}</div>`;
 }
