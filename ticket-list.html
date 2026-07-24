@@ -352,6 +352,17 @@ function renderClosedLoop() {
   `;
 }
 
+function _renderClosedLoopFull() {
+  document.body.innerHTML = renderPhoneShell(renderClosedLoop(), 'closedloop');
+  initPullToRefresh('tl-list', onClRefresh);
+}
+
+function onClRefresh() {
+  clState.visibleCount = 10;
+  _renderClosedLoopFull();
+  showToast('Updated', 'success');
+}
+
 function _topBarHTML() {
   if (clState.searchOpen) {
     return `
@@ -494,7 +505,7 @@ window.switchTab = function(key) {
   if (clState.tab === key) return;
   clState.tab = key;
   clState.visibleCount = 10;
-  document.body.innerHTML = renderPhoneShell(renderClosedLoop(), 'closedloop');
+  _renderClosedLoopFull();
 };
 
 let _tlTouchX = null;
@@ -688,7 +699,7 @@ window.applyFilters = function() {
   clState.filterCount = chipCount + tagCount + myCount;
   clState.visibleCount = 10;
   _rmOv('tl-fov');
-  document.body.innerHTML = renderPhoneShell(renderClosedLoop(), 'closedloop');
+  _renderClosedLoopFull();
 };
 
 /* ============================================================
@@ -763,7 +774,7 @@ window.applyAiTags = function() {
 /* ============================================================
    Init
    ============================================================ */
-document.body.innerHTML = renderPhoneShell(renderClosedLoop(), 'closedloop');
+_renderClosedLoopFull();
 
 </script>
 </body>

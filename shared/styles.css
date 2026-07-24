@@ -737,6 +737,29 @@ textarea.input-field {
 @keyframes spin { to { transform: rotate(360deg); } }
 .spinner-text { font-size: var(--text-sm); color: var(--text-light); }
 
+/* ----- Pull to refresh ----- */
+.ptr-indicator {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+}
+.ptr-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  transition: transform 80ms linear;
+}
+.ptr-indicator.spinning .ptr-spinner {
+  animation: spin 700ms linear infinite;
+}
+
 /* ----- Section heading ----- */
 .section-heading {
   font-size: var(--text-xs);
