@@ -106,6 +106,38 @@ note:
   CSS `:has()`), find the RN-portable equivalent before adopting it, or flag the gap explicitly
   rather than let it silently ship as web-only.
 
+## New Ticket flow — email-first identity resolution
+
+The ticket-creation form (`create-ticket.html`) leads with **Email**, ahead of Name and Phone,
+because email is the key used to resolve whether the reporter is an existing customer. The
+resolution check ("customer lookup") runs on blur of the Email field (not live/debounced while
+typing), and only after the value passes email-format validation — an invalid format shows an
+inline error immediately rather than waiting for submit.
+
+Outcomes of the lookup:
+
+- **Match found** — Name is always disabled (falls back to the email's local-part when the
+  matched record has no name on file). Phone is disabled and pre-filled if the matched record
+  has one; if the matched record's phone is blank, Phone unlocks so the agent can capture it.
+- **No match / lookup fails** — treated the same way: Name unlocks for manual entry, Phone stays
+  empty and editable. A failed lookup (network/server error) fails open to this state rather
+  than blocking ticket creation, with a non-blocking inline warning near Email.
+- **Email edited again after a lookup already ran** — Name/Phone and their lock state reset
+  immediately; the next blur re-runs the lookup. Prevents submitting a ticket where contact
+  details belong to a different email than the one currently in the field.
+
+While a lookup is in-flight, Name/Phone are dimmed and the Create Ticket button is disabled, to
+avoid submitting before resolution completes. Required fields to enable submission are Email and
+Description only — Segment (from originating context), Priority (Low), Status (New), and Date
+(today) are pre-filled defaults the agent can still change.
+
+The Date field is a tap-to-trigger picker (a row that opens a sheet), not a raw
+`<input type="date">` — that element is DOM-only and has no React Native equivalent per the
+portability constraint below. The RN build uses `@react-native-community/datetimepicker`
+instead, which is triggered the same way but renders natively differently per platform: Android
+opens its own system dialog, iOS renders an inline wheel that has to be hosted in a sheet/modal
+the app controls (there's no "tap and iOS just handles it" the way Android's dialog does).
+
 ## Ticket data model — extensibility
 
 `shared/data.js`'s ticket schema (status, priority, assignee, segment, NPS fields, comments,

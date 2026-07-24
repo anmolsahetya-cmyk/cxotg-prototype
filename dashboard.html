@@ -825,9 +825,18 @@ function onSegmentSelect(id, name) {
   showToast('Segment: ' + name, 'info');
 }
 
+/* ── Pull to refresh ─────────────────────── */
+function onDashRefresh() {
+  document.body.innerHTML = renderPhoneShell(renderDashboard(), 'dashboard');
+  _initQaSwipe();
+  initPullToRefresh('dash-body', onDashRefresh);
+  showToast('Updated', 'success');
+}
+
 /* ── Init ───────────────────────────────── */
 document.body.innerHTML = renderPhoneShell(renderDashboard(), 'dashboard');
 _initQaSwipe();
+initPullToRefresh('dash-body', onDashRefresh);
 </script>
 </body>
 </html>

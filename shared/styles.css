@@ -377,6 +377,37 @@ body {
 .priority-medium  { border-color: var(--priority-medium-border);   background: var(--priority-medium-fill);   color: #9A7800; }
 .priority-low     { border-color: var(--priority-low-border);      background: var(--priority-low-fill);      color: #2A7A50; }
 
+/* ----- Selectable status/priority pill (New Ticket-style pickers) -----
+   Unselected: neutral outline, no fill. Selected: the status/priority's own
+   color on border/icon/text (via --pill-c) PLUS a hue-independent "selected"
+   signal — neutral tint, bolder border, checkmark — so a grey-coded option
+   like "New" reads as selected just as clearly as a colored one. */
+.pill-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-sm);
+  font-weight: 400;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--text-light);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 150ms, border-color 150ms, background 150ms, box-shadow 150ms, transform 100ms;
+}
+.pill-select:active { transform: scale(0.96); }
+.pill-select.pill-active {
+  border: 2px solid var(--pill-c, var(--accent));
+  color: var(--pill-c, var(--accent));
+  background: var(--bg-selection);
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.10);
+}
+.pill-select .pill-check { display: none; margin-left: 1px; }
+.pill-select.pill-active .pill-check { display: inline-flex; }
+
 /* ----- Avatar ----- */
 .avatar {
   width: 32px;
@@ -460,16 +491,20 @@ body {
 .input-field {
   width: 100%;
   height: 48px;
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius);
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-lg);
   padding: 0 var(--sp-3);
   font-size: var(--text-base);
   color: var(--text);
-  background: var(--bg-card);
+  background: var(--bg-selection);
   outline: none;
-  transition: border-color 150ms;
+  transition: border-color 150ms, background 150ms, box-shadow 150ms;
 }
-.input-field:focus { border-color: var(--accent); }
+.input-field:focus {
+  background: var(--bg-card);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
 .input-field::placeholder { color: var(--text-light); }
 
 textarea.input-field {
@@ -479,6 +514,39 @@ textarea.input-field {
   resize: none;
   line-height: 1.5;
 }
+
+.input-field:disabled {
+  background: var(--bg-selection);
+  color: var(--text-light);
+  border-color: transparent;
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+.input-field.field-invalid { border-color: var(--error); background: var(--bg-card); }
+.input-field.field-invalid:focus { box-shadow: 0 0 0 3px rgba(229,50,81,0.16); }
+
+.input-field-wrap { position: relative; }
+.input-field-wrap .input-field { padding-right: 44px; }
+.input-field-icon {
+  position: absolute;
+  right: var(--sp-3);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+.field-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 700ms linear infinite;
+}
+.field-error   { font-size: var(--text-xs); color: var(--error);      margin-top: var(--sp-1); }
+.field-hint    { font-size: var(--text-xs); color: var(--text-light); margin-top: var(--sp-1); }
+.field-warning { font-size: var(--text-xs); color: #9A7800;           margin-top: var(--sp-1); }
 
 /* ----- Search bar ----- */
 .search-bar {
@@ -736,6 +804,29 @@ textarea.input-field {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 .spinner-text { font-size: var(--text-sm); color: var(--text-light); }
+
+/* ----- Pull to refresh ----- */
+.ptr-indicator {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+}
+.ptr-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  transition: transform 80ms linear;
+}
+.ptr-indicator.spinning .ptr-spinner {
+  animation: spin 700ms linear infinite;
+}
 
 /* ----- Section heading ----- */
 .section-heading {

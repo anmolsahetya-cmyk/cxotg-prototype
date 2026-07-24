@@ -218,6 +218,81 @@ function hideSpinner() {
   if (el) el.remove();
 }
 
+/* ----- Pull to refresh -----
+   Attaches a pull gesture to a scrollable container: dragging down from
+   scrollTop 0 reveals a spinner behind it, and past the threshold calls
+   onRefresh (sync or async) before snapping back. */
+function initPullToRefresh(containerId, onRefresh) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  const THRESHOLD = 60;
+  const MAX_PULL = 90;
+
+  // Wrap the container in its own relative box so the indicator sits directly
+  // above the list — inserting it into the outer parent would place it behind
+  // whatever header/topbar rows come before the container there.
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'position:relative;flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;';
+  container.parentNode.insertBefore(wrapper, container);
+  wrapper.appendChild(container);
+
+  const indicator = document.createElement('div');
+  indicator.className = 'ptr-indicator';
+  indicator.innerHTML = '<div class="ptr-spinner"></div>';
+  wrapper.insertBefore(indicator, container);
+
+  let startY = 0, pulling = false, dragging = false, refreshing = false;
+
+  container.addEventListener('pointerdown', (e) => {
+    if (refreshing || container.scrollTop > 0) { pulling = false; return; }
+    startY = e.clientY;
+    pulling = true;
+    dragging = false;
+  });
+
+  container.addEventListener('pointermove', (e) => {
+    if (!pulling || refreshing) return;
+    const dy = e.clientY - startY;
+    if (dy <= 0) { dragging = false; return; }
+    dragging = true;
+    e.preventDefault();
+    const pull = Math.min(dy * 0.5, MAX_PULL);
+    indicator.style.opacity = String(Math.min(1, pull / THRESHOLD));
+    container.style.transform = `translateY(${pull}px)`;
+  });
+
+  function finish() {
+    if (!pulling) return;
+    pulling = false;
+    if (!dragging) return;
+    const pulled = parseFloat((container.style.transform.match(/-?\d+\.?\d*/) || [0])[0]) || 0;
+    container.style.transition = 'transform 200ms ease';
+
+    if (pulled >= THRESHOLD) {
+      refreshing = true;
+      container.style.transform = `translateY(${THRESHOLD}px)`;
+      indicator.style.opacity = '1';
+      indicator.classList.add('spinning');
+      const minDelay = new Promise(resolve => setTimeout(resolve, 500));
+      Promise.all([Promise.resolve().then(onRefresh), minDelay]).then(() => {
+        container.style.transform = 'translateY(0)';
+        indicator.style.opacity = '0';
+        indicator.classList.remove('spinning');
+        refreshing = false;
+        setTimeout(() => { container.style.transition = ''; }, 200);
+      });
+    } else {
+      container.style.transform = 'translateY(0)';
+      indicator.style.opacity = '0';
+      setTimeout(() => { container.style.transition = ''; }, 200);
+    }
+  }
+
+  container.addEventListener('pointerup', finish);
+  container.addEventListener('pointercancel', finish);
+}
+
 /* ----- NPS Donut Chart (pure SVG) ----- */
 function renderNPSChart(nps) {
   const cx = 80, cy = 80, r = 58, strokeW = 14;
@@ -421,6 +496,22 @@ function getManager(id) {
 
 function getSegment(id) {
   return DATA.segments.find(s => s.id === id) || DATA.segments[0];
+}
+
+/* ----- Mock "user exists" lookup (New Ticket email-first flow) -----
+   Simulates an async backend call. `error@test.com` is a sentinel that
+   always rejects, for demoing the fail-open error path. */
+function mockLookupCustomerByEmail(email) {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      if (email.toLowerCase() === 'error@test.com') {
+        reject(new Error('Lookup failed'));
+        return;
+      }
+      const match = DATA.customers.find(c => c.email.toLowerCase() === email.toLowerCase());
+      resolve(match || null);
+    }, 700);
+  });
 }
 
 /* ----- Date filter sheet (Dashboard + Closedloop) -----
