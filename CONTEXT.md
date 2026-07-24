@@ -30,6 +30,37 @@ one-off classes like `.ov-card`/`.dd-box`) are considered legacy drift to be mig
 tokens, not a competing standard to preserve. New tokens are added here when a redesign needs
 a value the system doesn't yet have.
 
+`--ai-bg`/`--ai-border`/`--ai-text` (a purple treatment) are defined for AI-assisted surfaces
+but deliberately left unused — AI-assisted surfaces (e.g. the Send Email flow's AI Draft/Refine
+sheets) use the standard `--accent` blue like the rest of the app, to keep one accent language
+app-wide rather than introduce a second one for AI content.
+
+## Send Email flow
+
+The "Respond via email" compose experience (`send-email.html`), reached as a handoff action
+from the Ticket Details flow (see above — it is explicitly out of scope of that flow, a
+one-way jump-out, not a screen within it). A full standalone screen (`.nav-header` with a
+back arrow, like `create-ticket.html`), not a bottom sheet — an earlier revision presented it
+as a sheet sliding up over a darkened backdrop, but that was reverted in favor of a proper
+screen. Built on the shared design-token/component system (`shared/styles.css` tokens,
+`openSheet()`/`closeSheet()` from `shared/components.js`) rather than the local hardcoded-hex
+`.se-*` styles and hand-rolled overlays it originally shipped with. Its own sub-sheets
+(template picker, AI Draft, Refine, action history) are `openSheet()` instances layered over
+the full screen.
+
+Each ticket may carry an `emailHistory` array (newest first) — action emails actually sent
+from this flow, each with its own back-and-forth `messages` (agent/customer exchange), shown
+as the Action History disclosure's thread list. This is distinct from `ticket.activity`'s
+single-line "Action email sent to..." log entries, which record that a send happened but not
+the thread content.
+
+The Refine sheet ("Response Assist") applies **one style adjustment at a time**: Tone and
+Length chips are presented as two separate sections but intentionally share a single selection
+slot — picking a Length chip clears any selected Tone chip and vice versa. This is a deliberate
+constraint (not a bug to fix), so the UI carries a "Choose one" hint under those two sections
+to set that expectation. Intent is a separate, independent slot and can be combined with
+whichever Tone/Length choice is active.
+
 ## CRC (Centralized Root Cause)
 
 A nested category tree (section → item → sub-item) used to tag a ticket with one or more

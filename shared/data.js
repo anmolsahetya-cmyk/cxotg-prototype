@@ -100,10 +100,14 @@ const DATA = {
     },
   ],
 
-  /* ----- AI Email Draft (pre-written, shown after "Generate" spinner) ----- */
-  aiEmailDraft: {
-    subject: 'Following up on your experience — we\'re here to help',
-    body: `Dear James,
+  /* ----- AI Email Draft variations (pre-written, shown after "Generate" spinner) -----
+     Multiple variations so Regenerate/Refine don't show identical text twice in a row.
+     `style` is matched against Refine sheet Tone/Length selections to pick a variation. ----- */
+  aiEmailDrafts: [
+    {
+      style: 'professional',
+      subject: 'Following up on your experience — we\'re here to help',
+      body: `Dear James,
 
 Thank you for taking the time to share your feedback with us. I completely understand how frustrating it must have been to encounter a billing discrepancy during your renewal — this is not the experience we want for any of our customers, and I sincerely apologize for the inconvenience this has caused.
 
@@ -114,7 +118,36 @@ If there's anything else I can do to make this right, or if you'd like to discus
 Warm regards,
 Sarah Chen
 CX Manager, RetailCo International`,
-  },
+    },
+    {
+      style: 'concise',
+      subject: 'Quick update on your refund',
+      body: `Dear James,
+
+Thank you for your patience regarding the duplicate charge on your renewal. I've confirmed the error and initiated a full refund of $1,247.00, which will arrive within 3–5 business days. A 15% loyalty credit has also been applied to your next billing cycle.
+
+Please let me know if there's anything else I can help with.
+
+Warm regards,
+Sarah Chen
+CX Manager, RetailCo International`,
+    },
+    {
+      style: 'empathetic',
+      subject: 'We hear you, James — here\'s what we\'re doing',
+      body: `Dear James,
+
+I want to start by saying how sorry I am for the stress this billing issue has caused, especially given how long you've trusted us as a customer — that matters to us, and we don't take it lightly.
+
+I've personally looked into your account and confirmed the duplicate charge from June 15th. Our finance team is issuing a full refund of $1,247.00, which should reach your statement within 3–5 business days. I've also added a 15% loyalty credit to your next billing cycle — a small gesture, but one I hope shows how much we value you.
+
+If anything about this still doesn't feel right, or if there's more I can do, please reach out any time — I'm here.
+
+Warm regards,
+Sarah Chen
+CX Manager, RetailCo International`,
+    },
+  ],
 
   /* ----- Tone Options ----- */
   toneOptions: [
@@ -222,6 +255,58 @@ CX Manager, RetailCo International`,
         { id: 6, text: 'Status changed from Open → Escalated', actor: 'Marcus Rivera', date: 'Jun 18, 2026', type: 'status' },
         { id: 7, text: 'Action email sent to j.whitfield@techcorp.com', actor: 'Sarah Chen', date: 'Jun 18, 2026', type: 'email' },
         { id: 8, text: 'Ticket created from detractor alert', actor: 'System', date: 'Jun 18, 2026', type: 'create' },
+      ],
+      /* ----- Action email threads (Send Email flow's Action History) — newest first ----- */
+      emailHistory: [
+        {
+          id: 5,
+          subject: 'Confirming your refund and loyalty credit',
+          sentBy: 'Sarah Chen',
+          sentDate: 'Jun 25, 2026',
+          messages: [
+            { from: 'agent', author: 'Sarah Chen', date: 'Jun 25, 2026', text: 'Hi James, confirming the $1,247.00 refund has posted to your card, along with a 15% loyalty credit applied to your next billing cycle. Thank you for your patience.' },
+            { from: 'customer', author: 'James Whitfield', date: 'Jun 25, 2026', text: 'Received the refund, thank you for taking care of this so quickly.' },
+          ],
+        },
+        {
+          id: 4,
+          subject: 'Re: Billing discrepancy on your account',
+          sentBy: 'Marcus Rivera',
+          sentDate: 'Jun 22, 2026',
+          messages: [
+            { from: 'agent', author: 'Marcus Rivera', date: 'Jun 22, 2026', text: 'Hi James, wanted to give you a quick update — finance has confirmed the duplicate charge and the refund is being processed now.' },
+          ],
+        },
+        {
+          id: 3,
+          subject: 'Your duplicate charge has been identified',
+          sentBy: 'Sarah Chen',
+          sentDate: 'Jun 20, 2026',
+          messages: [
+            { from: 'agent', author: 'Sarah Chen', date: 'Jun 20, 2026', text: 'Hi James, I\'ve personally reviewed your account and found the duplicate charge from June 15th. I\'m escalating this to our finance team for an immediate refund.' },
+            { from: 'customer', author: 'James Whitfield', date: 'Jun 20, 2026', text: 'Thank you, please let me know once it\'s resolved. This has been frustrating.' },
+            { from: 'agent', author: 'Sarah Chen', date: 'Jun 20, 2026', text: 'Understood, I\'ll keep you updated every step of the way.' },
+          ],
+        },
+        {
+          id: 2,
+          subject: 'We\'re looking into your billing issue',
+          sentBy: 'Sarah Chen',
+          sentDate: 'Jun 19, 2026',
+          messages: [
+            { from: 'agent', author: 'Sarah Chen', date: 'Jun 19, 2026', text: 'Hi James, thank you for reaching out about the duplicate charge on your renewal. We take this seriously and are investigating right away.' },
+            { from: 'customer', author: 'James Whitfield', date: 'Jun 19, 2026', text: 'Appreciate the quick response. Been a customer for 4 years, this really shouldn\'t happen.' },
+          ],
+        },
+        {
+          id: 1,
+          subject: 'Thank you for contacting us',
+          sentBy: 'Sarah Chen',
+          sentDate: 'Jun 18, 2026',
+          messages: [
+            { from: 'agent', author: 'Sarah Chen', date: 'Jun 18, 2026', text: 'Hi James, thanks for flagging the billing issue on your renewal. We\'ve received your message and a member of our team is reviewing your account now.' },
+          ],
+        },
       ],
       rootCauses: [3], // billing issue
       centralizedRootCauses: [
