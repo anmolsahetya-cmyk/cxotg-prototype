@@ -30,6 +30,16 @@ const DATA = {
     { id: 3, name: 'Priya Patel',  email: 'priya.p@retailco.com',      initials: 'PP', avatarColor: '#FF9145' },
   ],
 
+  /* ----- Known customers (mock "user exists" lookup for New Ticket's
+     email-first identity resolution — see CONTEXT.md) ----- */
+  customers: [
+    { email: 'j.whitfield@techcorp.com',    name: 'James Whitfield', phone: '+1 415 555 0134' },
+    { email: 'priya.s@hospitalitygroup.co', name: 'Priya Sharma',    phone: ''                 },
+    { email: 'r.kim@globalfinance.net',     name: '',                phone: '+1 212 555 0192' },
+    { email: 'elena.v@northretail.com',     name: 'Elena Vasquez',   phone: '+1 312 555 0173' },
+    { email: 'd.okafor@smbbusiness.io',     name: '',                phone: ''                 },
+  ],
+
   /* ----- Dashboard state defaults ----- */
   currentSegment: 'Retail - North',
   dateRangeLabel: 'Jun 29, 2022 - Jun 29, 2026',

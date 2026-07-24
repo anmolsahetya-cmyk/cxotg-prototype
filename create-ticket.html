@@ -5,19 +5,42 @@
   <title>Pearl CX — New Ticket</title>
   <link rel="stylesheet" href="shared/styles.css">
   <style>
-    /* Drum picker column top/bottom fade */
-    .drum-col::before,
-    .drum-col::after {
-      content: '';
-      position: absolute;
-      left: 0; right: 0;
-      height: 60px;
-      z-index: 2;
-      pointer-events: none;
+    .ct-section-title {
+      font-size: var(--text-xs);
+      font-weight: 700;
+      color: var(--text-light);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: var(--sp-3);
     }
-    .drum-col::before { top: 0;    background: linear-gradient(to bottom, #3C3C40 0%, transparent 100%); }
-    .drum-col::after  { bottom: 0; background: linear-gradient(to top,   #3C3C40 0%, transparent 100%); }
-    .drum-col { position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; }
+    .ct-picker {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--sp-2);
+      height: 48px;
+      padding: 0 var(--sp-3);
+      border: 1.5px solid transparent;
+      border-radius: var(--radius-lg);
+      cursor: pointer;
+      font-size: var(--text-base);
+      color: var(--text);
+      background: var(--bg-selection);
+      transition: background 150ms;
+    }
+    .ct-picker:active { background: var(--bg-card); border-color: var(--border); }
+    .ct-picker-row {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-3);
+      padding: var(--sp-3) var(--sp-4);
+      border-bottom: 1px solid var(--divider);
+      cursor: pointer;
+    }
+    .ct-picker-row:last-child { border-bottom: none; }
+    .ct-picker-row:active { background: var(--bg-selection); }
+    .ct-picker-label { font-size: var(--text-base); color: var(--text); }
+    .ct-picker-check { color: var(--accent); margin-left: auto; display: flex; }
   </style>
 </head>
 <body>
@@ -28,427 +51,331 @@
 /* ============================================================
    Form state
    ============================================================ */
+function _todayISO() {
+  const d = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function _formatDateLabel(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
+
 const CT = {
+  email: '',
   customerName: '',
   phone: '',
-  email: '',
-  segmentId: null,
-  date: 'June 29, 2026',
-  priorityId: 0,   // 0=Low (default)
-  statusId:   0,   // 0=New (default)
+  segmentId: (DATA.segments.find(s => s.name === DATA.currentSegment) || {}).id ?? null,
+  dateISO: _todayISO(),
+  priorityId: 0,   // Low (default)
+  statusId:   0,   // New (default)
   ownerId:    null,
   description: '',
 };
 
-const PRIORITIES = [
-  { id: 0, label: 'Low',      color: '#42BD84' },
-  { id: 1, label: 'Medium',   color: '#F6C140' },
-  { id: 2, label: 'High',     color: '#E4632D' },
-  { id: 3, label: 'Critical', color: '#DA2222' },
-];
+/* Email-first identity resolution — see CONTEXT.md "New Ticket flow" */
+const LOOKUP = {
+  status: 'idle',   // idle | invalid | checking | found | notfound | error
+  matched: null,
+  checkedEmail: '',
+  requestId: 0,
+};
 
-const STATUSES = [
-  { id: 0, label: 'New',       color: null       },
-  { id: 1, label: 'Open',      color: '#40CA5A'  },
-  { id: 2, label: 'Escalated', color: '#FF9145'  },
-  { id: 3, label: 'Resolved',  color: '#1b87e6'  },
-];
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+function isValidEmail(v) { return EMAIL_RE.test(v.trim()); }
+function emailLocalPart(v) { return (v.split('@')[0] || '').trim(); }
+
+function _esc(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
+function _chevronIcon() {
+  return `<span style="color:var(--text-light);display:flex;flex-shrink:0;">${renderIcon('chevron_down', 18)}</span>`;
+}
 
 /* ============================================================
-   SVG helpers
+   Name / Phone — reactive to lookup state
    ============================================================ */
-function _flag(color) {
-  return `<svg width="20" height="20" viewBox="0 0 24 24" fill="${color}">
+function _nameFieldHTML() {
+  const disabled = LOOKUP.status === 'idle' || LOOKUP.status === 'invalid' ||
+                    LOOKUP.status === 'checking' || LOOKUP.status === 'found';
+  let value = '';
+  let placeholder = 'Enter email to continue';
+  if (LOOKUP.status === 'checking') {
+    placeholder = 'Checking…';
+  } else if (LOOKUP.status === 'found') {
+    value = CT.customerName;
+  } else if (LOOKUP.status === 'notfound' || LOOKUP.status === 'error') {
+    value = CT.customerName;
+    placeholder = 'Customer name';
+  }
+  const hint = LOOKUP.status === 'found'
+    ? `<div class="field-hint">Matched to an existing customer</div>` : '';
+
+  return `
+    <div class="input-group" id="ct-name-wrap">
+      <label class="input-label" for="ct-name">Customer name</label>
+      <input type="text" id="ct-name" class="input-field" value="${_esc(value)}" placeholder="${placeholder}"
+        ${disabled ? 'disabled' : ''} oninput="CT.customerName=this.value">
+      ${hint}
+    </div>
+  `;
+}
+
+function _phoneFieldHTML() {
+  const lockedWithPhone = LOOKUP.status === 'found' && !!(LOOKUP.matched && LOOKUP.matched.phone);
+  const disabled = LOOKUP.status === 'checking' || lockedWithPhone;
+  const value = lockedWithPhone ? LOOKUP.matched.phone : CT.phone;
+  const placeholder = LOOKUP.status === 'checking' ? 'Checking…' : 'Phone number';
+
+  return `
+    <div class="input-group" id="ct-phone-wrap" style="margin-bottom:0;">
+      <label class="input-label" for="ct-phone">Phone number</label>
+      <input type="tel" id="ct-phone" class="input-field" value="${_esc(value)}" placeholder="${placeholder}"
+        ${disabled ? 'disabled' : ''} oninput="CT.phone=this.value">
+    </div>
+  `;
+}
+
+function _refreshNamePhone() {
+  const nameEl = document.getElementById('ct-name-wrap');
+  const phoneEl = document.getElementById('ct-phone-wrap');
+  if (nameEl) nameEl.outerHTML = _nameFieldHTML();
+  if (phoneEl) phoneEl.outerHTML = _phoneFieldHTML();
+}
+
+/* ============================================================
+   Email input — triggers the lookup on blur
+   ============================================================ */
+window.onEmailInput = function(v) {
+  CT.email = v;
+  document.getElementById('ct-email').classList.remove('field-invalid');
+  document.getElementById('ct-email-msg').innerHTML = '';
+
+  // Editing the email again after it was already resolved invalidates
+  // whatever Name/Phone state that resolution produced.
+  if (v.trim() !== LOOKUP.checkedEmail && LOOKUP.status !== 'idle' && LOOKUP.status !== 'checking') {
+    LOOKUP.status = 'idle';
+    LOOKUP.matched = null;
+    CT.customerName = '';
+    CT.phone = '';
+    document.getElementById('ct-email-icon').innerHTML = '';
+    _refreshNamePhone();
+    _refreshSubmit();
+  }
+};
+
+window.onEmailBlur = function(v) {
+  v = v.trim();
+  CT.email = v;
+  const emailEl = document.getElementById('ct-email');
+  const msgEl = document.getElementById('ct-email-msg');
+  const iconEl = document.getElementById('ct-email-icon');
+
+  if (v === '') {
+    LOOKUP.status = 'idle';
+    LOOKUP.matched = null;
+    LOOKUP.checkedEmail = '';
+    CT.customerName = '';
+    CT.phone = '';
+    emailEl.classList.remove('field-invalid');
+    msgEl.innerHTML = '';
+    iconEl.innerHTML = '';
+    _refreshNamePhone();
+    _refreshSubmit();
+    return;
+  }
+
+  if (!isValidEmail(v)) {
+    LOOKUP.status = 'invalid';
+    LOOKUP.matched = null;
+    emailEl.classList.add('field-invalid');
+    msgEl.innerHTML = `<div class="field-error">Enter a valid email address</div>`;
+    _refreshNamePhone();
+    _refreshSubmit();
+    return;
+  }
+
+  emailEl.classList.remove('field-invalid');
+
+  // Already resolved this exact email — don't re-fire on a plain refocus/blur.
+  if (v === LOOKUP.checkedEmail && (LOOKUP.status === 'found' || LOOKUP.status === 'notfound')) {
+    return;
+  }
+
+  const reqId = ++LOOKUP.requestId;
+  LOOKUP.status = 'checking';
+  msgEl.innerHTML = '';
+  iconEl.innerHTML = '<span class="field-spinner"></span>';
+  _refreshNamePhone();
+  _refreshSubmit();
+
+  mockLookupCustomerByEmail(v).then(match => {
+    if (reqId !== LOOKUP.requestId) return; // stale — email changed again mid-flight
+    LOOKUP.checkedEmail = v;
+    iconEl.innerHTML = '';
+    if (match) {
+      LOOKUP.status = 'found';
+      LOOKUP.matched = match;
+      CT.customerName = match.name || emailLocalPart(v);
+      CT.phone = match.phone || '';
+    } else {
+      LOOKUP.status = 'notfound';
+      LOOKUP.matched = null;
+      CT.customerName = '';
+      CT.phone = '';
+    }
+    _refreshNamePhone();
+    _refreshSubmit();
+  }).catch(() => {
+    if (reqId !== LOOKUP.requestId) return;
+    LOOKUP.status = 'error';
+    LOOKUP.matched = null;
+    CT.customerName = '';
+    CT.phone = '';
+    iconEl.innerHTML = '';
+    msgEl.innerHTML = `<div class="field-warning">Couldn't verify this email — you can continue manually</div>`;
+    _refreshNamePhone();
+    _refreshSubmit();
+  });
+};
+
+/* ============================================================
+   Priority / Status — inline chips
+   ============================================================ */
+const PRIORITY_BORDER_VAR = {
+  0: '--priority-low-border', 1: '--priority-medium-border',
+  2: '--priority-high-border', 3: '--priority-critical-border',
+};
+const STATUS_BORDER_VAR = {
+  0: '--status-new-border', 1: '--status-open-border',
+  2: '--status-escalated-border', 3: '--status-resolved-border',
+};
+
+/* fill/stroke="currentColor" so the icon tracks the pill's own color rule
+   (neutral at rest, --pill-c once selected) with no extra state to manage. */
+function _priorityFlagIcon(size) {
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0;">
     <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
-    <line x1="4" y1="22" x2="4" y2="15" stroke="${color}" stroke-width="2" stroke-linecap="round"/>
+    <line x1="4" y1="22" x2="4" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
   </svg>`;
 }
-
-function _dot(color) {
-  if (!color) {
-    return `<svg width="22" height="22" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="#9B9B9B" stroke-width="2" fill="none"/></svg>`;
+function _statusDotIcon(size, hollow) {
+  // "New" has no fill color in the design system — white circle, grey ring —
+  // rather than a solid dot like the other statuses.
+  if (hollow) {
+    return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" style="flex-shrink:0;">
+      <circle cx="12" cy="12" r="9" fill="var(--bg-card)" stroke="currentColor" stroke-width="2.5"/>
+    </svg>`;
   }
-  return `<svg width="22" height="22" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="${color}"/></svg>`;
+  return `<span style="width:${size}px;height:${size}px;border-radius:50%;background:currentColor;display:inline-block;flex-shrink:0;"></span>`;
 }
 
-function _radioOn() {
-  return `<svg width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="#1b87e6" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="6" fill="#1b87e6"/></svg>`;
-}
-function _radioOff() {
-  return `<svg width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="#BDBDBD" stroke-width="2" fill="none"/></svg>`;
+function _pillCheckIcon() {
+  return `<span class="pill-check">${renderIcon('check', 13)}</span>`;
 }
 
-function _chevron() {
-  return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E9AAD" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,9 12,15 18,9"/></svg>`;
+function _priorityChipsHTML() {
+  return Object.entries(DATA.priorityMap).map(([id, p]) => {
+    const sel = CT.priorityId === Number(id);
+    return `<div class="pill-select${sel ? ' pill-active' : ''}" style="--pill-c:var(${PRIORITY_BORDER_VAR[id]});" onclick="setPriority(${id})">${_priorityFlagIcon(14)}<span>${p.label}</span>${_pillCheckIcon()}</div>`;
+  }).join('');
 }
-
-function _closeBtn(fn) {
-  return `<button onclick="${fn}" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#545E6B" stroke-width="2.5" stroke-linecap="round">
-      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-    </svg>
-  </button>`;
+function _statusChipsHTML() {
+  return Object.entries(DATA.statusMap).map(([id, s]) => {
+    const sel = CT.statusId === Number(id);
+    return `<div class="pill-select${sel ? ' pill-active' : ''}" style="--pill-c:var(${STATUS_BORDER_VAR[id]});" onclick="setStatus(${id})">${_statusDotIcon(10, Number(id) === 0)}<span>${s.label}</span>${_pillCheckIcon()}</div>`;
+  }).join('');
 }
+window.setPriority = function(id) {
+  CT.priorityId = Number(id);
+  document.getElementById('ct-pri-chips').innerHTML = _priorityChipsHTML();
+};
+window.setStatus = function(id) {
+  CT.statusId = Number(id);
+  document.getElementById('ct-sta-chips').innerHTML = _statusChipsHTML();
+};
 
 /* ============================================================
-   Shared sheet overlay builder
-   ============================================================ */
-function _sheetHTML(title, closeFn, itemsHTML, btnLabel, btnFn, maxH) {
-  maxH = maxH || '72%';
-  return `
-    <div style="position:absolute;inset:0;background:rgba(0,0,0,0.45);" onclick="${closeFn}()"></div>
-    <div style="position:relative;z-index:1;background:#fff;border-radius:20px 20px 0 0;display:flex;flex-direction:column;max-height:${maxH};">
-      <div style="display:flex;justify-content:center;padding:10px 0 0;flex-shrink:0;">
-        <div style="width:40px;height:4px;background:#DCDCDC;border-radius:2px;"></div>
-      </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;flex-shrink:0;">
-        <span style="font-size:22px;font-weight:700;color:#404A5B;font-family:var(--font);">${title}</span>
-        ${_closeBtn(closeFn + '()')}
-      </div>
-      <div style="flex:1;overflow-y:auto;">${itemsHTML}</div>
-      ${btnLabel ? `
-        <div style="padding:12px 16px 20px;flex-shrink:0;">
-          <button onclick="${btnFn}()"
-            style="width:100%;height:52px;background:#1b87e6;color:#fff;font-size:18px;font-family:var(--font);font-weight:500;border:none;border-radius:8px;cursor:pointer;">
-            ${btnLabel}
-          </button>
-        </div>` : ''}
-    </div>`;
-}
-
-function _injectOverlay(id, innerHTML) {
-  _removeOverlay(id);
-  const screen = document.getElementById('screen');
-  if (!screen) return;
-  const el = document.createElement('div');
-  el.id = id;
-  el.style.cssText = 'position:absolute;inset:0;z-index:200;display:flex;flex-direction:column;justify-content:flex-end;';
-  el.innerHTML = innerHTML;
-  screen.appendChild(el);
-}
-
-function _removeOverlay(id) {
-  const el = document.getElementById(id);
-  if (el) el.remove();
-}
-
-/* ============================================================
-   Main form
-   ============================================================ */
-function renderCreateTicket() {
-  const pri = PRIORITIES[CT.priorityId];
-  const sta = STATUSES[CT.statusId];
-  const seg = CT.segmentId !== null ? DATA.segments.find(s => s.id === CT.segmentId) : null;
-  const own = CT.ownerId   !== null ? DATA.managers.find(m => m.id === CT.ownerId)   : null;
-
-  const lbl  = 'font-size:15px;color:#545E6B;font-family:var(--font);margin-bottom:8px;display:block;';
-  const inp  = 'display:block;width:100%;box-sizing:border-box;background:#F5F5F5;border:none;border-bottom:1px solid #A2A6A9;height:40px;padding:0 8px;font-size:14px;color:#545E6B;font-family:var(--font);outline:none;';
-  const pick = 'display:flex;align-items:center;gap:8px;border:1px solid #A2A6A9;min-height:46px;padding:0 12px;cursor:pointer;background:#fff;user-select:none;';
-  const fw   = 'margin-bottom:16px;';
-
-  return `
-    <div class="screen-content" style="background:#F5F5F5;">
-
-      <!-- Header -->
-      <div style="background:#fff;border-bottom:1px solid #d8d8d8;display:flex;align-items:center;padding:14px 16px;gap:12px;flex-shrink:0;">
-        <a href="ticket-list.html" style="display:flex;align-items:center;color:#404A5B;text-decoration:none;">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#404A5B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="15,18 9,12 15,6"/>
-          </svg>
-        </a>
-        <span style="flex:1;text-align:center;font-size:20px;font-weight:700;color:#404A5B;font-family:var(--font);">New ticket</span>
-        <div style="width:24px;"></div>
-      </div>
-
-      <!-- Scrollable body -->
-      <div style="flex:1;overflow-y:auto;" id="ct-scroll">
-        <div style="background:#fff;border-radius:8px;margin:16px;padding:16px 16px 8px;">
-
-          <!-- Customer name -->
-          <div style="${fw}">
-            <span style="${lbl}">Customer name</span>
-            <input type="text" id="ct-name" value="${CT.customerName}"
-              oninput="CT.customerName=this.value" style="${inp}"/>
-          </div>
-
-          <!-- Phone number -->
-          <div style="${fw}">
-            <span style="${lbl}">Phone number</span>
-            <div style="display:flex;align-items:center;background:#F5F5F5;border-bottom:1px solid #A2A6A9;height:40px;padding:0 8px;gap:6px;">
-              <span style="font-size:20px;line-height:1;">🇺🇸</span>
-              <svg width="10" height="6" viewBox="0 0 10 6" fill="#545E6B"><path d="M0 0L5 6L10 0Z"/></svg>
-              <span style="font-size:14px;color:#545E6B;font-family:var(--font);">+1</span>
-              <div style="width:1px;height:18px;background:#C8CACF;margin:0 4px;"></div>
-              <input type="tel" id="ct-phone" value="${CT.phone}"
-                oninput="CT.phone=this.value"
-                style="flex:1;border:none;background:transparent;font-size:14px;color:#545E6B;font-family:var(--font);outline:none;"/>
-            </div>
-          </div>
-
-          <!-- Email -->
-          <div style="${fw}">
-            <span style="${lbl}">Email</span>
-            <input type="email" id="ct-email" value="${CT.email}"
-              oninput="CT.email=this.value" style="${inp}"/>
-          </div>
-
-          <!-- Segment -->
-          <div style="${fw}">
-            <span style="${lbl}">Segment</span>
-            <div onclick="openSegPicker()" style="${pick}">
-              <span id="ct-seg-text" style="flex:1;font-size:15px;font-family:var(--font);color:${seg ? '#545E6B' : '#C0C4C9'};">
-                ${seg ? seg.name : 'Select segment'}
-              </span>
-              ${_chevron()}
-            </div>
-          </div>
-
-          <!-- Date -->
-          <div style="${fw}">
-            <span style="${lbl}">Date</span>
-            <div onclick="openDatePicker()" style="${pick}">
-              <span id="ct-date-text" style="flex:1;font-size:15px;color:#545E6B;font-family:var(--font);">${CT.date}</span>
-            </div>
-          </div>
-
-          <!-- Priority -->
-          <div style="${fw}">
-            <span style="${lbl}">Priority</span>
-            <div onclick="openPriPicker()" style="${pick}">
-              <span id="ct-pri-icon">${_flag(pri.color)}</span>
-              <span id="ct-pri-text" style="flex:1;font-size:15px;color:#545E6B;font-family:var(--font);">${pri.label}</span>
-              ${_chevron()}
-            </div>
-          </div>
-
-          <!-- Status -->
-          <div style="${fw}">
-            <span style="${lbl}">Status</span>
-            <div onclick="openStaPicker()" style="${pick}">
-              <span id="ct-sta-icon">${_dot(sta.color)}</span>
-              <span id="ct-sta-text" style="flex:1;font-size:15px;color:#545E6B;font-family:var(--font);">${sta.label}</span>
-              ${_chevron()}
-            </div>
-          </div>
-
-          <!-- Ticket owner -->
-          <div style="${fw}">
-            <span style="${lbl}">Ticket owner</span>
-            <div onclick="openOwnPicker()" style="${pick}">
-              <span id="ct-own-text" style="flex:1;font-size:15px;font-family:var(--font);color:${own ? '#545E6B' : '#C0C4C9'};">
-                ${own ? own.name : 'Select ticket owner'}
-              </span>
-              ${_chevron()}
-            </div>
-          </div>
-
-          <!-- Description -->
-          <div style="${fw}">
-            <span style="${lbl}">Description</span>
-            <textarea id="ct-desc" oninput="CT.description=this.value"
-              style="display:block;width:100%;box-sizing:border-box;background:#F5F5F5;border:none;border-bottom:1px solid #A2A6A9;height:128px;padding:8px;font-size:14px;color:#545E6B;font-family:var(--font);outline:none;resize:none;">${CT.description}</textarea>
-          </div>
-
-          <!-- Create button -->
-          <button onclick="handleCreateTicket()"
-            style="display:block;width:100%;height:52px;background:#1b87e6;color:#fff;font-size:18px;font-family:var(--font);font-weight:500;border:none;border-radius:8px;cursor:pointer;margin-top:8px;margin-bottom:8px;">
-            Create new ticket
-          </button>
-
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-/* ============================================================
-   Priority picker
-   ============================================================ */
-window.openPriPicker = function() {
-  window._tmpPri = CT.priorityId;
-  const items = PRIORITIES.map(p => `
-    <div onclick="pickPri(${p.id})"
-      style="display:flex;align-items:center;gap:12px;padding:18px 16px;border-bottom:1px solid rgba(0,0,0,0.08);cursor:pointer;">
-      <span>${_flag(p.color)}</span>
-      <span style="flex:1;font-size:17px;color:#545E6B;font-family:var(--font);">${p.label}</span>
-      <span id="pri-r-${p.id}">${CT.priorityId === p.id ? _radioOn() : _radioOff()}</span>
-    </div>`).join('');
-  _injectOverlay('ct-pri-ov', _sheetHTML('Priority', 'closePriPicker', items, 'Set priority', 'applyPriPicker'));
-};
-
-window.pickPri = function(id) {
-  window._tmpPri = id;
-  PRIORITIES.forEach(p => {
-    const el = document.getElementById(`pri-r-${p.id}`);
-    if (el) el.innerHTML = (p.id === id) ? _radioOn() : _radioOff();
-  });
-};
-window.applyPriPicker = function() {
-  const id = (window._tmpPri !== undefined) ? window._tmpPri : CT.priorityId;
-  CT.priorityId = id;
-  const p = PRIORITIES[id];
-  const icon = document.getElementById('ct-pri-icon');
-  const text = document.getElementById('ct-pri-text');
-  if (icon) icon.innerHTML = _flag(p.color);
-  if (text) text.textContent = p.label;
-  _removeOverlay('ct-pri-ov');
-  window._tmpPri = undefined;
-};
-window.closePriPicker = function() { _removeOverlay('ct-pri-ov'); window._tmpPri = undefined; };
-
-/* ============================================================
-   Status picker
-   ============================================================ */
-window.openStaPicker = function() {
-  window._tmpSta = CT.statusId;
-  const items = STATUSES.map(s => `
-    <div onclick="pickSta(${s.id})"
-      style="display:flex;align-items:center;gap:12px;padding:18px 16px;border-bottom:1px solid rgba(0,0,0,0.08);cursor:pointer;">
-      <span>${_dot(s.color)}</span>
-      <span style="flex:1;font-size:17px;color:#545E6B;font-family:var(--font);">${s.label}</span>
-      <span id="sta-r-${s.id}">${CT.statusId === s.id ? _radioOn() : _radioOff()}</span>
-    </div>`).join('');
-  _injectOverlay('ct-sta-ov', _sheetHTML('Status', 'closeStaPicker', items, 'Set status', 'applyStaPicker'));
-};
-
-window.pickSta = function(id) {
-  window._tmpSta = id;
-  STATUSES.forEach(s => {
-    const el = document.getElementById(`sta-r-${s.id}`);
-    if (el) el.innerHTML = (s.id === id) ? _radioOn() : _radioOff();
-  });
-};
-window.applyStaPicker = function() {
-  const id = (window._tmpSta !== undefined) ? window._tmpSta : CT.statusId;
-  CT.statusId = id;
-  const s = STATUSES[id];
-  const icon = document.getElementById('ct-sta-icon');
-  const text = document.getElementById('ct-sta-text');
-  if (icon) icon.innerHTML = _dot(s.color);
-  if (text) text.textContent = s.label;
-  _removeOverlay('ct-sta-ov');
-  window._tmpSta = undefined;
-};
-window.closeStaPicker = function() { _removeOverlay('ct-sta-ov'); window._tmpSta = undefined; };
-
-/* ============================================================
-   Segment picker — simple list, no radios, no search
+   Segment picker (shared sheet)
    ============================================================ */
 window.openSegPicker = function() {
-  const items = DATA.segments.map(s => `
-    <div onclick="pickSeg(${s.id})"
-      style="display:flex;align-items:center;padding:18px 16px;border-bottom:1px solid rgba(0,0,0,0.08);cursor:pointer;">
-      <span style="flex:1;font-size:17px;color:#545E6B;font-family:var(--font);">${s.name}</span>
-    </div>`).join('');
-  _injectOverlay('ct-seg-ov', _sheetHTML('Segment', 'closeSegPicker', items, '', '', '70%'));
-};
-
-window.pickSeg = function(id) {
-  CT.segmentId = id;
-  const seg = DATA.segments.find(s => s.id === id);
-  const el = document.getElementById('ct-seg-text');
-  if (el && seg) { el.textContent = seg.name; el.style.color = '#545E6B'; }
-  _removeOverlay('ct-seg-ov');
-};
-window.closeSegPicker = function() { _removeOverlay('ct-seg-ov'); };
-
-/* ============================================================
-   Owner picker
-   ============================================================ */
-window.openOwnPicker = function() {
-  window._tmpOwn = CT.ownerId;
-  const items = DATA.managers.map(m => `
-    <div onclick="pickOwn(${m.id})"
-      style="display:flex;align-items:center;gap:12px;padding:18px 16px;border-bottom:1px solid rgba(0,0,0,0.08);cursor:pointer;">
-      <div style="width:36px;height:36px;border-radius:18px;background:${m.avatarColor};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;font-family:var(--font);flex-shrink:0;">${m.initials}</div>
-      <span style="flex:1;font-size:17px;color:#545E6B;font-family:var(--font);">${m.name}</span>
-      <span id="own-r-${m.id}">${CT.ownerId === m.id ? _radioOn() : _radioOff()}</span>
-    </div>`).join('');
-  _injectOverlay('ct-own-ov', _sheetHTML('Ticket owner', 'closeOwnPicker', items, 'Set owner', 'applyOwnPicker'));
-};
-
-window.pickOwn = function(id) {
-  window._tmpOwn = id;
-  DATA.managers.forEach(m => {
-    const el = document.getElementById(`own-r-${m.id}`);
-    if (el) el.innerHTML = (m.id === id) ? _radioOn() : _radioOff();
+  const seg = CT.segmentId != null ? DATA.segments.find(s => s.id === CT.segmentId) : null;
+  openSegmentSheet(seg ? seg.name : '', (id, name) => {
+    CT.segmentId = id;
+    const el = document.getElementById('ct-seg-text');
+    el.textContent = name;
+    el.style.color = 'var(--text)';
   });
 };
-window.applyOwnPicker = function() {
-  const id = (window._tmpOwn !== undefined) ? window._tmpOwn : CT.ownerId;
-  CT.ownerId = id;
-  const m = id !== null ? DATA.managers.find(x => x.id === id) : null;
-  const el = document.getElementById('ct-own-text');
-  if (el && m) { el.textContent = m.name; el.style.color = '#545E6B'; }
-  _removeOverlay('ct-own-ov');
-  window._tmpOwn = undefined;
-};
-window.closeOwnPicker = function() { _removeOverlay('ct-own-ov'); window._tmpOwn = undefined; };
 
 /* ============================================================
-   Date picker — iOS drum-wheel style (static visual prototype)
+   Ticket owner picker
    ============================================================ */
-const _DAYS   = ['27', '28', '29', '30', '01'];
-const _MONTHS = ['April', 'May', 'June', 'July', 'August'];
-const _YEARS  = ['2024', '2025', '2026', '2027', '2028'];
-
-function _drumRow(val, idx) {
-  const s = [
-    'color:rgba(255,255,255,0.22);font-size:15px;',
-    'color:rgba(255,255,255,0.42);font-size:18px;',
-    'color:#fff;font-size:22px;font-weight:700;',
-    'color:rgba(255,255,255,0.42);font-size:18px;',
-    'color:rgba(255,255,255,0.22);font-size:15px;',
-  ];
-  return `<div style="height:44px;display:flex;align-items:center;justify-content:center;width:100%;font-family:var(--font);${s[idx]}">${val}</div>`;
-}
-
-function _drumCol(values, flex) {
-  return `<div class="drum-col" style="flex:${flex};">
-    ${values.map((v, i) => _drumRow(v, i)).join('')}
-  </div>`;
-}
-
-window.openDatePicker = function() {
-  _removeOverlay('ct-date-ov');
-  const screen = document.getElementById('screen');
-  if (!screen) return;
-
-  const el = document.createElement('div');
-  el.id = 'ct-date-ov';
-  el.style.cssText = 'position:absolute;inset:0;z-index:200;background:rgba(0,0,0,0.72);display:flex;flex-direction:column;justify-content:flex-end;';
-  el.innerHTML = `
-    <div style="background:#3C3C40;border-radius:14px 14px 0 0;">
-      <div style="text-align:center;color:rgba(255,255,255,0.88);font-size:16px;font-family:var(--font);padding:16px;border-bottom:1px solid rgba(255,255,255,0.12);">
-        Start date
-      </div>
-      <div style="display:flex;padding:6px 12px 4px;position:relative;">
-        <div style="position:absolute;left:12px;right:12px;top:50%;transform:translateY(-50%);height:44px;background:rgba(255,255,255,0.12);border-radius:6px;pointer-events:none;z-index:1;"></div>
-        ${_drumCol(_DAYS, 1)}
-        ${_drumCol(_MONTHS, 2)}
-        ${_drumCol(_YEARS, 1)}
-      </div>
-      <div onclick="closeDatePicker()"
-        style="text-align:center;color:#1b87e6;font-size:20px;font-family:var(--font);padding:14px 16px;border-top:1px solid rgba(255,255,255,0.12);cursor:pointer;">
-        Confirm
-      </div>
-    </div>
-    <div style="background:#3C3C40;border-radius:14px;margin:8px 0 0;">
-      <div onclick="closeDatePicker()"
-        style="text-align:center;color:#1b87e6;font-size:20px;font-family:var(--font);padding:16px;cursor:pointer;">
-        Cancel
-      </div>
-    </div>
-  `;
-  screen.appendChild(el);
+window.openOwnerPicker = function() {
+  const rows = DATA.managers.map(m => {
+    const sel = CT.ownerId === m.id;
+    return `<div class="ct-picker-row" onclick="pickOwner(${m.id})">
+      ${renderAvatar(m.name, m.avatarColor, 'sm')}
+      <div class="ct-picker-label">${m.name}</div>
+      ${sel ? `<span class="ct-picker-check">${renderIcon('check', 20)}</span>` : ''}
+    </div>`;
+  }).join('');
+  openSheet('owner', rows, 'Ticket owner');
+};
+window.pickOwner = function(id) {
+  CT.ownerId = id;
+  closeSheet('owner');
+  const m = getManager(id);
+  const el = document.getElementById('ct-own-text');
+  el.textContent = m.name;
+  el.style.color = 'var(--text)';
 };
 
-window.closeDatePicker = function() { _removeOverlay('ct-date-ov'); };
+/* ============================================================
+   Date picker — tap-to-trigger, not a raw native <input type="date">.
+   That element is DOM-only and has no React Native equivalent; the RN
+   build uses @react-native-community/datetimepicker instead, which is
+   imperatively triggered the same way (Android opens its own dialog,
+   iOS shows an inline wheel we host in this same sheet). See CONTEXT.md.
+   ============================================================ */
+window.openDatePicker = function() {
+  const body = `
+    <div style="padding:var(--sp-4);">
+      <input type="date" id="ct-date-input" class="input-field" value="${CT.dateISO}">
+    </div>
+    <div class="sheet-footer">
+      <button class="btn btn-primary btn-full" onclick="applyDatePicker()">Apply</button>
+    </div>
+  `;
+  openSheet('date', body, 'Date');
+};
+window.applyDatePicker = function() {
+  const v = document.getElementById('ct-date-input').value;
+  if (v) {
+    CT.dateISO = v;
+    document.getElementById('ct-date-text').textContent = _formatDateLabel(v);
+  }
+  closeSheet('date');
+};
 
 /* ============================================================
    Submit
    ============================================================ */
+function _canSubmit() {
+  return isValidEmail(CT.email) && CT.description.trim().length > 0 && LOOKUP.status !== 'checking';
+}
+window._refreshSubmit = function() {
+  const btn = document.getElementById('ct-submit');
+  if (!btn) return;
+  const ok = _canSubmit();
+  btn.disabled = !ok;
+  btn.classList.toggle('btn-disabled', !ok);
+};
+
 window.handleCreateTicket = function() {
+  if (!_canSubmit()) return;
   showSpinner('Creating ticket…');
   setTimeout(() => {
     hideSpinner();
@@ -456,6 +383,91 @@ window.handleCreateTicket = function() {
     setTimeout(() => { window.location.href = 'ticket-list.html'; }, 1600);
   }, 1200);
 };
+
+/* ============================================================
+   Main form
+   ============================================================ */
+function renderCreateTicket() {
+  const seg = CT.segmentId != null ? DATA.segments.find(s => s.id === CT.segmentId) : null;
+  const own = CT.ownerId != null ? DATA.managers.find(m => m.id === CT.ownerId) : null;
+
+  return `
+    <div class="screen-content">
+      ${renderHeader({ title: 'New ticket', showBack: true })}
+      <div class="screen-body" id="ct-scroll">
+
+        <div class="card" style="padding:16px;">
+          <div class="ct-section-title">Contact information</div>
+
+          <div class="input-group">
+            <label class="input-label" for="ct-email">Email</label>
+            <div class="input-field-wrap">
+              <input type="email" id="ct-email" class="input-field" value="${_esc(CT.email)}"
+                placeholder="name@company.com" autocomplete="email"
+                oninput="onEmailInput(this.value)" onblur="onEmailBlur(this.value)">
+              <span class="input-field-icon" id="ct-email-icon"></span>
+            </div>
+            <div id="ct-email-msg"></div>
+          </div>
+
+          ${_nameFieldHTML()}
+          ${_phoneFieldHTML()}
+        </div>
+
+        <div class="card" style="padding:16px;">
+          <div class="ct-section-title">Ticket details</div>
+
+          <div class="input-group">
+            <label class="input-label">Date</label>
+            <div class="ct-picker" onclick="openDatePicker()">
+              <span id="ct-date-text">${_formatDateLabel(CT.dateISO)}</span>
+              ${_chevronIcon()}
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label">Segment</label>
+            <div class="ct-picker" onclick="openSegPicker()">
+              <span id="ct-seg-text" style="color:${seg ? 'var(--text)' : 'var(--text-light)'};">${seg ? seg.name : 'Select segment'}</span>
+              ${_chevronIcon()}
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label">Priority</label>
+            <div class="chip-wrap" style="padding:0;" id="ct-pri-chips">${_priorityChipsHTML()}</div>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label">Status</label>
+            <div class="chip-wrap" style="padding:0;" id="ct-sta-chips">${_statusChipsHTML()}</div>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label">Ticket owner</label>
+            <div class="ct-picker" onclick="openOwnerPicker()">
+              <span id="ct-own-text" style="color:${own ? 'var(--text)' : 'var(--text-light)'};">${own ? own.name : 'Select ticket owner'}</span>
+              ${_chevronIcon()}
+            </div>
+          </div>
+
+          <div class="input-group" style="margin-bottom:0;">
+            <label class="input-label" for="ct-desc">Description</label>
+            <textarea id="ct-desc" class="input-field" placeholder="Describe the issue…"
+              oninput="CT.description=this.value; _refreshSubmit();">${_esc(CT.description)}</textarea>
+          </div>
+        </div>
+
+        <div style="padding:4px 16px 24px;">
+          <button id="ct-submit" class="btn btn-primary btn-full btn-disabled" disabled onclick="handleCreateTicket()">
+            Create new ticket
+          </button>
+        </div>
+
+      </div>
+    </div>
+  `;
+}
 
 /* ============================================================
    Init

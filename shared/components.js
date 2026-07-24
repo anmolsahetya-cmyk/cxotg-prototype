@@ -497,6 +497,22 @@ function getSegment(id) {
   return DATA.segments.find(s => s.id === id) || DATA.segments[0];
 }
 
+/* ----- Mock "user exists" lookup (New Ticket email-first flow) -----
+   Simulates an async backend call. `error@test.com` is a sentinel that
+   always rejects, for demoing the fail-open error path. */
+function mockLookupCustomerByEmail(email) {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      if (email.toLowerCase() === 'error@test.com') {
+        reject(new Error('Lookup failed'));
+        return;
+      }
+      const match = DATA.customers.find(c => c.email.toLowerCase() === email.toLowerCase());
+      resolve(match || null);
+    }, 700);
+  });
+}
+
 /* ----- Date filter sheet (Dashboard + Closedloop) -----
    Single-screen bottom sheet: quick-range chips + always-visible custom
    start/end fields (no tabs). Callers pass their current {key, startISO,
