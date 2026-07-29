@@ -9,34 +9,8 @@
     /* ── Header ─────────────────────────────── */
     .dash-header {
       flex-shrink: 0;
-      background: #fff;
-      border-bottom: 1px solid #E4E4E4;
     }
-    .dash-title-block {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 1px;
-      min-width: 0;
-      padding-left: 4px;
-    }
-    .dash-title {
-      font-size: 20px;
-      font-weight: 400;
-      color: #1B3380;
-      line-height: 1.2;
-    }
-    .dash-subtitle-row {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .dash-subtitle {
-      font-size: 13px;
-      font-weight: 400;
-      color: rgba(255,255,255,0.85);
-      line-height: 1.3;
-    }
+
     /* ── Date filter bar ─────────────────────── */
     .dash-date-bar {
       background: #fff;
@@ -45,7 +19,6 @@
       flex-direction: column;
       align-items: stretch;
       gap: 8px;
-      border-top: 1px solid rgba(0,0,0,0.08);
     }
     /* The shared component's flex:1 sets flex-basis:0%, which hijacks the
        *main* axis size — harmless in Closedloop's row layout (main axis is
@@ -343,7 +316,7 @@
 <script>
 
 let dashState = {
-  segment: DATA.currentSegment,
+  segment: getCurrentSegment(),
   dateKey: 'all',
   dateStart: DATA.dateRangeStart,
   dateEnd: DATA.dateRangeEnd,
@@ -820,6 +793,7 @@ window.onCarouselScroll = function() {
 /* ── Segment callback ───────────────────── */
 function onSegmentSelect(id, name) {
   dashState.segment = name;
+  setCurrentSegment(name);
   const el = document.getElementById('dash-segment-label');
   if (el) el.textContent = name;
   showToast('Segment: ' + name, 'info');

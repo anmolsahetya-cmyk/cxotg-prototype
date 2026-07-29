@@ -400,6 +400,14 @@ function renderDateFilterButton(label, id, onclick) {
   `;
 }
 
+/* ----- Current segment persistence (shared across Dashboard / Closedloop) ----- */
+function getCurrentSegment() {
+  return localStorage.getItem('currentSegment') || DATA.currentSegment;
+}
+function setCurrentSegment(name) {
+  localStorage.setItem('currentSegment', name);
+}
+
 /* ----- Shared header component ----- */
 function renderHeader({ title, showBack = false, right = '' }) {
   return `
@@ -718,104 +726,56 @@ function openSegmentSheet(currentSegment, onSelect) {
   _seg.current = currentSegment;
   _seg.query   = '';
   _seg.onSelect = onSelect;
-
-  let overlay = document.getElementById('seg-overlay');
-  if (!overlay) {
-    overlay = document.createElement('div');
-    overlay.id = 'seg-overlay';
-    overlay.style.cssText = 'position:absolute;top:0;left:0;right:0;bottom:0;z-index:200;display:flex;flex-direction:column;justify-content:flex-end;';
-    document.getElementById('screen').appendChild(overlay);
-  }
-  _redrawSegSheet();
+  openSheet('segment', _segSheetBodyHTML(), 'Segment');
+  requestAnimationFrame(() => {
+    const inp = document.getElementById('seg-search');
+    if (inp) inp.focus();
+  });
 }
 
 function closeSegmentSheet() {
-  const el = document.getElementById('seg-overlay');
-  if (el) el.remove();
+  closeSheet('segment');
 }
 
-function _redrawSegSheet() {
-  const overlay = document.getElementById('seg-overlay');
-  if (!overlay) return;
+function _segSheetBodyHTML() {
   const q = _seg.query.toLowerCase();
   const list = DATA.segments.filter(s => !q || s.name.toLowerCase().includes(q));
 
-  const radioOn  = `<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="#1b87e6" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="6" fill="#1b87e6"/></svg>`;
-  const radioOff = `<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="#BDBDBD" stroke-width="2" fill="none"/></svg>`;
-
-  const items = list.map(s => {
+  const rows = list.length ? list.map(s => {
     const sel = s.name === _seg.current;
-    return `<div onclick="window._segPick(\`${s.name}\`)" style="display:flex;align-items:center;padding:18px 0;border-bottom:1px solid rgba(0,0,0,0.08);cursor:pointer;">
-      <span style="flex:1;font-size:17px;color:#545E6B;font-family:var(--font);">${s.name}</span>
-      ${sel ? radioOn : radioOff}
-    </div>`;
-  }).join('');
+    return `
+      <div class="picker-row${sel ? ' selected' : ''}" onclick="window._segPick(${s.id})">
+        <span class="picker-label">${s.name}</span>
+        ${sel ? `<span class="picker-check">${renderIcon('check', 20)}</span>` : ''}
+      </div>`;
+  }).join('') : `<div style="padding:32px var(--sp-4);text-align:center;color:var(--text-light);font-size:var(--text-sm);">No segments found</div>`;
 
-  overlay.innerHTML = `
-    <div style="position:absolute;inset:0;background:rgba(0,0,0,0.45);" onclick="closeSegmentSheet()"></div>
-    <div style="background:#fff;border-radius:20px 20px 0 0;display:flex;flex-direction:column;max-height:78%;position:relative;z-index:1;" onclick="event.stopPropagation()">
-
-      <!-- Handle -->
-      <div style="display:flex;justify-content:center;padding:10px 0 0;">
-        <div style="width:40px;height:4px;background:#DCDCDC;border-radius:2px;"></div>
-      </div>
-
-      <!-- Title row -->
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;">
-        <span style="font-size:22px;font-weight:700;color:#404A5B;font-family:var(--font);">Segment</span>
-        <button onclick="closeSegmentSheet()" style="background:none;border:none;cursor:pointer;width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:#545E6B;padding:0;">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" xmlns="http://www.w3.org/2000/svg">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
-      </div>
-
-      <!-- Search bar (flat Material style) -->
-      <div style="padding:0 16px 14px;">
-        <div style="display:flex;align-items:center;background:#F3F5F8;border-radius:8px 8px 0 0;padding:10px 12px;border-bottom:1.5px solid rgba(0,0,0,0.18);">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#909090" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
-          <input
-            id="seg-search"
-            type="text"
-            placeholder="Search using segment name"
-            value="${_seg.query}"
-            oninput="window._segSearch(this.value)"
-            style="flex:1;border:none;background:transparent;margin-left:10px;font-size:15px;color:#545E6B;font-family:var(--font);outline:none;"
-          />
-        </div>
-      </div>
-
-      <!-- Segment list -->
-      <div style="flex:1;overflow-y:auto;padding:0 16px;">
-        ${items}
-      </div>
-
-      <!-- Select segment button -->
-      <div style="padding:12px 16px 20px;flex-shrink:0;">
-        <button onclick="window._segApply()" style="width:100%;height:52px;background:#1b87e6;color:#fff;font-size:18px;font-family:var(--font);border:none;border-radius:8px;cursor:pointer;font-weight:500;">
-          Select segment
-        </button>
-      </div>
+  return `
+    <div class="search-bar" style="margin-top:var(--sp-3);">
+      <span style="display:flex;color:var(--text-light);flex-shrink:0;">${renderIcon('search', 18)}</span>
+      <input
+        id="seg-search"
+        type="text"
+        placeholder="Search segments"
+        value="${_seg.query}"
+        oninput="window._segSearch(this.value)"
+      />
     </div>
+    <div>${rows}</div>
   `;
 }
 
-window._segPick = function(name) {
-  _seg.current = name;
-  _redrawSegSheet();
+window._segPick = function(id) {
+  const seg = DATA.segments.find(s => s.id === id);
+  if (!seg) return;
+  _seg.current = seg.name;
+  closeSegmentSheet();
+  if (_seg.onSelect) _seg.onSelect(seg.id, seg.name);
 };
 
 window._segSearch = function(q) {
   _seg.query = q;
-  _redrawSegSheet();
+  updateSheetBody('segment', _segSheetBodyHTML());
   const inp = document.getElementById('seg-search');
   if (inp) { inp.focus(); inp.setSelectionRange(q.length, q.length); }
-};
-
-window._segApply = function() {
-  const seg = DATA.segments.find(s => s.name === _seg.current);
-  closeSegmentSheet();
-  if (_seg.onSelect) _seg.onSelect(seg ? seg.id : 0, _seg.current);
 };

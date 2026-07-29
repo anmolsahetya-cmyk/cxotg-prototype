@@ -133,6 +133,27 @@
       font-size: 13px; font-weight: 600; color: var(--accent);
     }
 
+    /* ----- Survey response sheet ----- */
+    .sv-hero { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-2) var(--sp-4) var(--sp-3); }
+    .sv-hero-badge {
+      width: 52px; height: 52px; border-radius: var(--radius-lg); color: #fff; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700;
+    }
+    .sv-hero-label { font-size: var(--text-base); font-weight: 700; }
+    .sv-hero-sub { font-size: 12px; color: var(--text-light); margin-top: 2px; }
+    .sv-divider { height: 1px; background: var(--divider); margin: 0 var(--sp-4); }
+    .sv-q-list { padding: var(--sp-1) var(--sp-4) var(--sp-4); }
+    .sv-q-block { padding: var(--sp-4) 0; border-bottom: 1px solid var(--divider); }
+    .sv-q-block:last-child { border-bottom: none; }
+    .sv-q-label { font-size: var(--text-sm); font-weight: 700; color: var(--text); line-height: 1.4; margin-bottom: var(--sp-2); }
+    .sv-q-answer { font-size: var(--text-sm); color: var(--text-light); line-height: 1.55; background: var(--bg-selection); border-radius: var(--radius); padding: var(--sp-3); }
+    .sv-score-row { display: flex; align-items: center; gap: var(--sp-2); }
+    .sv-score-badge { width: 30px; height: 30px; border-radius: var(--radius-sm); color: #fff; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .sv-score-tag { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
+    .sv-scale-bar { display: flex; gap: 3px; margin-top: var(--sp-3); }
+    .sv-scale-seg { flex: 1; height: 7px; border-radius: 4px; background: var(--bg-selection); }
+    .sv-scale-endpoints { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-light); margin-top: 4px; }
+
     /* ----- Description show more/less ----- */
     .td-desc-text { font-size: var(--text-sm); color: var(--text); line-height: 1.5; }
     .td-desc-text.clamped { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
@@ -608,8 +629,88 @@ function _renderNpsBanner() {
 }
 
 window.openResponseWindow = function() {
-  showToast('Response window coming soon', 'info');
+  openSheet('response', _surveyResponseBodyHTML(), 'Survey response');
 };
+
+/* ----- Survey response data (falls back to NPS score/verbatim if no
+   detailed surveyResponse is present on the ticket) ----- */
+function _surveyResponseData() {
+  if (ticket.surveyResponse?.questions?.length) return ticket.surveyResponse;
+  return {
+    submittedDate: ticket.issueDate,
+    questions: [
+      { type: 'nps', question: 'How likely are you to recommend us to a friend or colleague?', answer: ticket.npsScore, scale: 10 },
+      ...(ticket.npsVerbatim ? [{ type: 'text', question: 'What is the primary reason for your score?', answer: ticket.npsVerbatim }] : []),
+    ],
+  };
+}
+
+const _NPS_BAND_COLORS = { Promoter: 'var(--promoter)', Passive: 'var(--passive)', Detractor: 'var(--detractor)' };
+
+function _scoreBand(score, scale) {
+  const pct = score / scale;
+  if (pct >= 0.9) return { label: 'Promoter', color: _NPS_BAND_COLORS.Promoter };
+  if (pct >= 0.7) return { label: 'Passive', color: _NPS_BAND_COLORS.Passive };
+  return { label: 'Detractor', color: _NPS_BAND_COLORS.Detractor };
+}
+
+function _scaleBarHTML(score, scale, color) {
+  let segs = '';
+  for (let i = 0; i <= scale; i++) {
+    segs += `<div class="sv-scale-seg" style="${i <= score ? `background:${color};` : ''}"></div>`;
+  }
+  return `<div class="sv-scale-bar">${segs}</div><div class="sv-scale-endpoints"><span>0</span><span>${scale}</span></div>`;
+}
+
+function _surveyQuestionHTML(q) {
+  if (q.type === 'nps' || q.type === 'rating') {
+    const scale = q.scale || 10;
+    const band = _scoreBand(q.answer, scale);
+    return `
+      <div class="sv-q-block">
+        <div class="sv-q-label">${q.question}</div>
+        <div class="sv-score-row">
+          <div class="sv-score-badge" style="background:${band.color};">${q.answer}</div>
+          <span class="sv-score-tag" style="color:${band.color};">${band.label}</span>
+        </div>
+        ${_scaleBarHTML(q.answer, scale, band.color)}
+      </div>
+    `;
+  }
+  if (q.type === 'choice' && Array.isArray(q.answer)) {
+    return `
+      <div class="sv-q-block">
+        <div class="sv-q-label">${q.question}</div>
+        <div class="td-rc-chip-row">${q.answer.map(a => `<span class="td-rc-chip">${a}</span>`).join('')}</div>
+      </div>
+    `;
+  }
+  return `
+    <div class="sv-q-block">
+      <div class="sv-q-label">${q.question}</div>
+      <div class="sv-q-answer">${q.answer}</div>
+    </div>
+  `;
+}
+
+function _surveyResponseBodyHTML() {
+  const sv = _surveyResponseData();
+  const segment = getSegment(ticket.segmentId);
+  const heroColor = _NPS_BAND_COLORS[ticket.npsLabel] || _NPS_BAND_COLORS.Detractor;
+  return `
+    <div class="sv-hero">
+      <div class="sv-hero-badge" style="background:${heroColor};">${ticket.npsScore}</div>
+      <div style="min-width:0;">
+        <div class="sv-hero-label" style="color:${heroColor};">${ticket.npsLabel}</div>
+        <div class="sv-hero-sub">Submitted ${formatDate(sv.submittedDate || ticket.issueDate)} · ${segment.name}</div>
+      </div>
+    </div>
+    <div class="sv-divider"></div>
+    <div class="sv-q-list">
+      ${sv.questions.map(_surveyQuestionHTML).join('')}
+    </div>
+  `;
+}
 
 /* ============================================================
    Status / Priority / Assignee — field cards + sheets

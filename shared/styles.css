@@ -679,6 +679,24 @@ textarea.input-field {
   flex-shrink: 0;
 }
 
+/* ----- Picker row (Status / Priority / Segment / Assignee sheets) ----- */
+.picker-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  cursor: pointer;
+  border-bottom: 1px solid var(--divider);
+  transition: background 120ms;
+}
+.picker-row:last-child { border-bottom: none; }
+.picker-row:active { background: var(--bg-selection); }
+.picker-row.selected { background: var(--accent-bg); }
+.picker-label { flex: 1; font-size: var(--text-base); font-weight: 600; color: var(--text); }
+.picker-row.selected .picker-label { color: var(--accent); }
+.picker-sub { font-size: 12px; color: var(--text-light); margin-top: 1px; }
+.picker-check { color: var(--accent); flex-shrink: 0; display: flex; }
+
 /* ----- Checkbox row ----- */
 .checkbox-row {
   display: flex;
@@ -933,43 +951,46 @@ textarea.input-field {
 }
 .comment-input:focus { border-color: var(--accent); background: white; }
 
-/* ----- App bar: segment selector + notification bell (Dashboard / Closedloop) ----- */
+/* ----- App bar (Dashboard / Closedloop) ----- */
 .app-bar {
-  background: #fff;
   display: flex;
   align-items: center;
-  padding: 10px 16px;
-  gap: 12px;
+  gap: var(--sp-2);
+  padding: 10px var(--sp-3) 10px 12px;
+  min-height: 56px;
+  background: var(--bg-card);
   flex-shrink: 0;
 }
-.app-bar-bordered { border-bottom: 1px solid #E4E4E4; }
+.app-bar-bordered { border-bottom: 1px solid var(--divider); }
 .app-bar-bell {
   background: none;
   border: none;
+  padding: 4px;
   cursor: pointer;
   position: relative;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
-  padding: 4px;
-  color: #1B3380;
-  flex-shrink: 0;
+  justify-content: center;
+  color: var(--accent-2);
 }
 .app-bar-bell-badge {
   position: absolute;
   top: -2px;
   right: -2px;
   background: #E03C3C;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
   border-radius: 10px;
   min-width: 20px;
   height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
-  font-weight: 700;
-  color: #fff;
-  font-family: var(--font);
   padding: 0 4px;
+  line-height: 1;
+  font-family: var(--font);
 }
 
 /* ----- Segment selector pill (Dashboard / Closedloop app bars) ----- */

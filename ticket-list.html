@@ -168,7 +168,7 @@
    State
    ============================================================ */
 let clState = {
-  segment: DATA.currentSegment,
+  segment: getCurrentSegment(),
   dateKey: 'all',
   dateStart: DATA.dateRangeStart,
   dateEnd: DATA.dateRangeEnd,
@@ -506,6 +506,7 @@ window.onClDateApply = function(applied) {
 
 window.onClSegmentSelect = function(id, name) {
   clState.segment = name;
+  setCurrentSegment(name);
   const el = document.getElementById('cl-segment-label');
   if (el) el.textContent = name;
   showToast('Segment: ' + name, 'info');
