@@ -170,47 +170,20 @@ CX Manager, RetailCo International`,
   ],
 
   /* ----- Notifications ----- */
+  // Each item is a snapshot of a ticket event at the time it happened (not a
+  // live view of DATA.tickets) — see CONTEXT.md "Notifications".
   notifications: [
-    {
-      id: 1,
-      title: 'New detractor alert',
-      body: 'James Whitfield (NPS: 2) in Enterprise - West',
-      time: '2 min ago',
-      read: false,
-      type: 'alert',
-    },
-    {
-      id: 2,
-      title: 'Ticket escalated',
-      body: 'TKT-1041 escalated to Critical by Marcus Rivera',
-      time: '15 min ago',
-      read: false,
-      type: 'escalation',
-    },
-    {
-      id: 3,
-      title: 'Comment added',
-      body: 'Priya Patel commented on TKT-1038',
-      time: '1 hour ago',
-      read: true,
-      type: 'comment',
-    },
-    {
-      id: 4,
-      title: 'Ticket resolved',
-      body: 'TKT-1035 marked as Resolved by Sarah Chen',
-      time: '3 hours ago',
-      read: true,
-      type: 'resolved',
-    },
-    {
-      id: 5,
-      title: 'New survey response',
-      body: '24 new responses received in Retail - North',
-      time: 'Yesterday',
-      read: true,
-      type: 'response',
-    },
+    { id: 1,  type: 'priority', ticketId: 'TKT-1046', priorityId: 3, actor: 'Priya Patel',   time: '2 min ago',   read: false },
+    { id: 2,  type: 'status',   ticketId: 'TKT-1041', statusId: 2,   actor: 'Marcus Rivera', time: '15 min ago',  read: false },
+    { id: 3,  type: 'assign',   ticketId: 'TKT-1050', assigneeId: 1, actor: 'Marcus Rivera', time: '28 min ago',  read: false },
+    { id: 4,  type: 'comment',  ticketId: 'TKT-1055', actor: 'Priya Patel',   time: '1 hour ago',  read: false },
+    { id: 5,  type: 'priority', ticketId: 'TKT-1048', priorityId: 2, actor: 'Marcus Rivera', time: '3 hours ago', read: true },
+    { id: 6,  type: 'status',   ticketId: 'TKT-1056', statusId: 0,   actor: 'Sarah Chen',    time: '5 hours ago', read: true },
+    { id: 7,  type: 'comment',  ticketId: 'TKT-1043', actor: 'Marcus Rivera', time: '6 hours ago', read: true },
+    { id: 8,  type: 'priority', ticketId: 'TKT-1044', priorityId: 1, actor: 'Sarah Chen',    time: 'Yesterday',   read: true },
+    { id: 9,  type: 'assign',   ticketId: 'TKT-1057', assigneeId: 2, actor: 'Sarah Chen',    time: 'Yesterday',   read: true },
+    { id: 10, type: 'status',   ticketId: 'TKT-1051', statusId: 3,   actor: 'Sarah Chen',    time: '2 days ago',  read: true },
+    { id: 11, type: 'priority', ticketId: 'TKT-1049', priorityId: 0, actor: 'Marcus Rivera', time: '3 days ago',  read: true },
   ],
 
   /* ----- Tickets (15 items) ----- */

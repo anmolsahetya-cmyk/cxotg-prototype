@@ -7,21 +7,27 @@
   <link rel="stylesheet" href="shared/styles.css">
   <style>
     .notif-item {
-      display:flex;align-items:flex-start;gap:12px;
-      padding:12px 16px;border-bottom:1px solid var(--divider);
-      cursor:pointer;transition:background 100ms;background:#fff;
+      display:flex;align-items:flex-start;gap:var(--sp-3);
+      padding:var(--sp-3) var(--sp-4);border-bottom:1px solid var(--divider);
+      border-left:3px solid transparent;
+      cursor:pointer;transition:background 100ms,border-color 100ms;background:var(--bg-card);
     }
-    .notif-item.unread { background:#f0f7ff; }
+    .notif-item.unread { border-left-color:var(--accent); }
     .notif-item:active { background:var(--bg-selection); }
     .notif-icon-wrap {
-      width:40px;height:40px;border-radius:50%;
+      width:26px;height:26px;border-radius:50%;
       display:flex;align-items:center;justify-content:center;
-      font-size:18px;flex-shrink:0;
+      flex-shrink:0;
     }
+    .notif-icon-wrap.escalated { border:2px solid var(--status-escalated-border); }
+    .notif-status-dot { width:8px;height:8px;border-radius:50%; }
     .notif-content { flex:1;min-width:0; }
-    .notif-title { font-size:var(--text-sm);font-weight:700;color:var(--text); }
-    .notif-body  { font-size:var(--text-xs);color:var(--text-light);margin-top:2px;line-height:1.4; }
-    .notif-time  { font-size:10px;color:var(--text-light);margin-top:4px; }
+    .notif-title { font-size:var(--text-sm);font-weight:700;color:var(--text);line-height:1.35; }
+    .notif-title.you { color:var(--accent); }
+    .notif-pill-row { margin-top:var(--sp-1); }
+    .notif-pill-row .status-pill,
+    .notif-pill-row .priority-pill { background:transparent; }
+    .notif-time  { font-size:var(--text-xs);color:var(--text-light);margin-top:var(--sp-1); }
     .unread-indicator { width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:6px; }
   </style>
 </head>
@@ -32,13 +38,56 @@
 
 let notifications = JSON.parse(JSON.stringify(DATA.notifications));
 
-const NOTIF_ICONS = {
-  alert:      { icon:'⚠️', bg:'#fff3e0' },
-  escalation: { icon:'🔴', bg:'#ffe5eb' },
-  comment:    { icon:'💬', bg:'#e8f5e9' },
-  resolved:   { icon:'✅', bg:'#e8f5e9' },
-  response:   { icon:'📊', bg:'#e3f2fd' },
-};
+function _actorAvatarColor(actor) {
+  const m = getManagerByName(actor);
+  return m ? m.avatarColor : '#CC6677';
+}
+
+function _isAssignedToYou(n) {
+  const me = getManagerByEmail(DATA.user.email);
+  return !!me && n.assigneeId === me.id;
+}
+
+function _notifIconWrapHTML(n) {
+  if (n.type === 'comment' || n.type === 'assign') {
+    return `<div class="notif-icon-wrap">${renderAvatar(n.actor, _actorAvatarColor(n.actor), 'sm')}</div>`;
+  }
+  if (n.type === 'status') {
+    const s = DATA.statusMap[n.statusId];
+    const escalated = n.statusId === 2;
+    return `
+      <div class="notif-icon-wrap${escalated ? ' escalated' : ''}" style="background:var(--${s.cssClass}-fill);">
+        <div class="notif-status-dot" style="background:var(--${s.cssClass}-border);"></div>
+      </div>
+    `;
+  }
+  // priority
+  const p = DATA.priorityMap[n.priorityId];
+  return `<div class="notif-icon-wrap" style="background:var(--${p.cssClass}-fill);color:var(--${p.cssClass}-border);">${renderIcon('flag', 14)}</div>`;
+}
+
+function _notifBodyHTML(n) {
+  if (n.type === 'status') {
+    const s = DATA.statusMap[n.statusId];
+    return `
+      <div class="notif-title">${n.actor} changed status on ${n.ticketId}</div>
+      <div class="notif-pill-row"><span class="status-pill ${s.cssClass}">${s.label}</span></div>
+    `;
+  }
+  if (n.type === 'priority') {
+    const p = DATA.priorityMap[n.priorityId];
+    return `
+      <div class="notif-title">${n.actor} changed priority on ${n.ticketId}</div>
+      <div class="notif-pill-row"><span class="priority-pill ${p.cssClass}">${p.label}</span></div>
+    `;
+  }
+  if (n.type === 'assign') {
+    const assignee = getManager(n.assigneeId);
+    const isYou = _isAssignedToYou(n);
+    return `<div class="notif-title${isYou ? ' you' : ''}">${n.actor} assigned ${n.ticketId} to ${isYou ? 'you' : assignee.name}</div>`;
+  }
+  return `<div class="notif-title">${n.actor} commented on ${n.ticketId}</div>`;
+}
 
 function renderNotifications() {
   const unreadCount = notifications.filter(n => !n.read).length;
@@ -50,20 +99,16 @@ function renderNotifications() {
         right: unreadCount > 0 ? `<button class="icon-btn" onclick="markAllRead()" style="font-size:11px;color:var(--accent);font-weight:600;width:auto;padding:0 4px;">All read</button>` : ''
       })}
       <div class="screen-body">
-        ${notifications.map((n, i) => {
-          const ic = NOTIF_ICONS[n.type] || NOTIF_ICONS.response;
-          return `
-            <div class="notif-item${n.read ? '' : ' unread'}" onclick="markRead(${i})">
-              <div class="notif-icon-wrap" style="background:${ic.bg};">${ic.icon}</div>
-              <div class="notif-content">
-                <div class="notif-title">${n.title}</div>
-                <div class="notif-body">${n.body}</div>
-                <div class="notif-time">${n.time}</div>
-              </div>
-              ${!n.read ? '<div class="unread-indicator"></div>' : ''}
+        ${notifications.map((n, i) => `
+          <div class="notif-item${n.read ? '' : ' unread'}" onclick="openNotification(${i})">
+            ${_notifIconWrapHTML(n)}
+            <div class="notif-content">
+              ${_notifBodyHTML(n)}
+              <div class="notif-time">${n.time}</div>
             </div>
-          `;
-        }).join('')}
+            ${!n.read ? '<div class="unread-indicator"></div>' : ''}
+          </div>
+        `).join('')}
         ${notifications.length === 0 ? `
           <div class="empty-state">
             <div class="empty-state-icon">🔔</div>
@@ -75,9 +120,10 @@ function renderNotifications() {
   `;
 }
 
-window.markRead = function(idx) {
+window.openNotification = function(idx) {
   notifications[idx].read = true;
-  document.body.innerHTML = renderPhoneShell(renderNotifications());
+  localStorage.setItem('selectedTicketId', notifications[idx].ticketId);
+  window.location.href = 'ticket-detail.html';
 };
 
 window.markAllRead = function() {
