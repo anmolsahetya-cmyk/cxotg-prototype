@@ -70,16 +70,6 @@
     .td-assigncard.disabled:active { background: var(--bg-selection); }
     .td-assigncard-hint { font-size: 12px; color: var(--text-light); font-style: italic; margin-top: 2px; }
 
-    /* ----- Picker rows (Status / Priority / Assignee sheets) ----- */
-    .td-picker-row { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); cursor: pointer; border-bottom: 1px solid var(--divider); transition: background 120ms; }
-    .td-picker-row:last-child { border-bottom: none; }
-    .td-picker-row:active { background: var(--bg-selection); }
-    .td-picker-row.selected { background: var(--accent-bg); }
-    .td-picker-label { flex: 1; font-size: var(--text-base); font-weight: 600; color: var(--text); }
-    .td-picker-row.selected .td-picker-label { color: var(--accent); }
-    .td-picker-sub { font-size: 12px; color: var(--text-light); margin-top: 1px; }
-    .td-picker-check { color: var(--accent); flex-shrink: 0; display: flex; }
-
     /* ----- AI tag buttons ----- */
     .td-ai-tag-label { font-size: 11px; font-weight: 700; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.4px; margin-top: var(--sp-3); margin-bottom: var(--sp-2); }
     .td-ai-tag-wrap { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
@@ -994,6 +984,257 @@ function _authorAvatar(author, initials) {
   return renderAvatar(author, color, 'sm');
 }
 
+/* ============================================================
+   Comment composer — attach + @mention + send
+   Shared by the main "Add comment" box and every per-comment reply
+   box. Each instance is keyed by a ctxId ('main' or `reply-${id}`)
+   so several can exist in the DOM without colliding.
+   ============================================================ */
+const _composerState = {};
+let _openMentionCtx = null;
+
+function _getComposerState(ctxId) {
+  if (!_composerState[ctxId]) _composerState[ctxId] = { attachments: [], mentions: new Set() };
+  return _composerState[ctxId];
+}
+function _resetComposerState(ctxId) {
+  delete _composerState[ctxId];
+}
+function _discardComposerState(ctxId) {
+  const st = _composerState[ctxId];
+  if (st) st.attachments.forEach(a => { if (a.url) URL.revokeObjectURL(a.url); });
+  delete _composerState[ctxId];
+}
+
+function _escapeHTML(str) {
+  return String(str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function _mentionize(escapedText, mentionIds) {
+  let out = escapedText;
+  (mentionIds || []).forEach(id => {
+    const name = _escapeHTML(getManager(id).name);
+    out = out.split('@' + name).join(`<span class="mention-tag">@${name}</span>`);
+  });
+  return out;
+}
+
+function _formatBytes(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function _attachmentChipsHTML(list, ctxId, removable) {
+  return (list || []).map((a, i) => a.type === 'image' ? `
+    <div class="attach-thumb">
+      <img src="${a.url}" alt="${_escapeHTML(a.name)}"/>
+      ${removable ? `<span class="attach-remove" onclick="removeCommentAttachment('${ctxId}', ${i})">${renderIcon('close', 10)}</span>` : ''}
+    </div>
+  ` : `
+    <span class="attach-chip">
+      ${renderIcon('file', 14)}
+      <span class="attach-name">${_escapeHTML(a.name)}</span>
+      <span class="attach-size">${a.sizeLabel}</span>
+      ${removable ? `<span class="attach-remove" onclick="removeCommentAttachment('${ctxId}', ${i})">${renderIcon('close', 10)}</span>` : ''}
+    </span>
+  `).join('');
+}
+
+function _joinNames(names) {
+  if (names.length <= 1) return names[0] || '';
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  return `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`;
+}
+function _mentionToastSuffix(mentionIds) {
+  const names = (mentionIds || [])
+    .map(id => getManager(id))
+    .filter(m => m.name !== DATA.user.name)
+    .map(m => m.name);
+  return names.length ? ' — Notified ' + _joinNames(names) : '';
+}
+
+function _mentionPopoverHTML(ctxId, query) {
+  const q = (query || '').toLowerCase();
+  const matches = DATA.managers.filter(m => m.name.toLowerCase().includes(q));
+  const rows = matches.length ? matches.map(m => `
+    <div class="td-picker-row" onclick="selectMention('${ctxId}', ${m.id})">
+      ${renderAvatar(m.name, m.avatarColor, 'sm')}
+      <span class="td-picker-label">${m.name}</span>
+    </div>
+  `).join('') : `<div class="mention-empty">No matches</div>`;
+  return `
+    <div class="mention-backdrop" onclick="closeMentionPopover('${ctxId}')"></div>
+    <div class="mention-popover">${rows}</div>
+  `;
+}
+
+function _openMentionPopover(ctxId, query) {
+  if (_openMentionCtx && _openMentionCtx !== ctxId) closeMentionPopover(_openMentionCtx);
+  _openMentionCtx = ctxId;
+  const el = document.getElementById(`cmt-mentionpop-${ctxId}`);
+  if (el) el.innerHTML = _mentionPopoverHTML(ctxId, query);
+}
+window.closeMentionPopover = function(ctxId) {
+  if (_openMentionCtx === ctxId) _openMentionCtx = null;
+  const el = document.getElementById(`cmt-mentionpop-${ctxId}`);
+  if (el) el.innerHTML = '';
+};
+
+window.onComposerInput = function(ctxId, input) {
+  const caret = input.selectionStart ?? input.value.length;
+  const uptoCaret = input.value.slice(0, caret);
+  const at = uptoCaret.lastIndexOf('@');
+  const validStart = at !== -1 && (at === 0 || /\s/.test(uptoCaret[at - 1]));
+  const query = at !== -1 ? uptoCaret.slice(at + 1) : '';
+  if (validStart && !/\s/.test(query)) {
+    _openMentionPopover(ctxId, query);
+  } else if (_openMentionCtx === ctxId) {
+    closeMentionPopover(ctxId);
+  }
+};
+
+window.onComposerKeydown = function(event, ctxId) {
+  if (event.key === 'Escape' && _openMentionCtx === ctxId) {
+    closeMentionPopover(ctxId);
+    return;
+  }
+  if (event.key === 'Enter' && !event.shiftKey && _openMentionCtx !== ctxId) {
+    event.preventDefault();
+    submitComposer(ctxId);
+  }
+};
+
+window.toggleMentionPopover = function(ctxId) {
+  if (_openMentionCtx === ctxId) {
+    closeMentionPopover(ctxId);
+    return;
+  }
+  const input = document.getElementById(`cmt-text-${ctxId}`);
+  if (input) {
+    const start = input.selectionStart ?? input.value.length;
+    const end = input.selectionEnd ?? input.value.length;
+    input.value = input.value.slice(0, start) + '@' + input.value.slice(end);
+    input.focus();
+    input.setSelectionRange(start + 1, start + 1);
+  }
+  _openMentionPopover(ctxId, '');
+};
+
+window.selectMention = function(ctxId, managerId) {
+  const input = document.getElementById(`cmt-text-${ctxId}`);
+  const mgr = getManager(managerId);
+  if (!input) return;
+  const caret = input.selectionStart ?? input.value.length;
+  const uptoCaret = input.value.slice(0, caret);
+  const at = uptoCaret.lastIndexOf('@');
+  const before = input.value.slice(0, at === -1 ? caret : at);
+  const after = input.value.slice(caret);
+  const insert = `@${mgr.name} `;
+  input.value = before + insert + after;
+  const pos = before.length + insert.length;
+  input.focus();
+  input.setSelectionRange(pos, pos);
+  _getComposerState(ctxId).mentions.add(managerId);
+  closeMentionPopover(ctxId);
+};
+
+window.openCommentAttach = function(ctxId) {
+  document.getElementById(`cmt-file-${ctxId}`)?.click();
+};
+window.handleCommentFileSelect = function(ctxId, input) {
+  const files = Array.from(input.files || []);
+  const st = _getComposerState(ctxId);
+  files.forEach(f => {
+    const isImage = f.type.startsWith('image/');
+    st.attachments.push({
+      name: f.name, size: f.size, sizeLabel: _formatBytes(f.size),
+      type: isImage ? 'image' : 'file',
+      url: isImage ? URL.createObjectURL(f) : null,
+    });
+  });
+  input.value = '';
+  _refreshComposerAttachPreview(ctxId);
+};
+window.removeCommentAttachment = function(ctxId, idx) {
+  const st = _getComposerState(ctxId);
+  const [removed] = st.attachments.splice(idx, 1);
+  if (removed?.url) URL.revokeObjectURL(removed.url);
+  _refreshComposerAttachPreview(ctxId);
+};
+function _refreshComposerAttachPreview(ctxId) {
+  const el = document.getElementById(`cmt-attach-preview-${ctxId}`);
+  if (el) el.innerHTML = _attachmentChipsHTML(_getComposerState(ctxId).attachments, ctxId, true);
+}
+
+function _composerHTML(ctxId, placeholder, postLabel) {
+  const st = _getComposerState(ctxId);
+  return `
+    <div class="cmt-composer" data-ctx="${ctxId}">
+      <div id="cmt-mentionpop-${ctxId}"></div>
+      <div class="cmt-attach-preview" id="cmt-attach-preview-${ctxId}">${_attachmentChipsHTML(st.attachments, ctxId, true)}</div>
+      <div class="cmt-composer-box">
+        <textarea id="cmt-text-${ctxId}" class="cmt-text" placeholder="${placeholder}" rows="2"
+          oninput="onComposerInput('${ctxId}', this)" onkeydown="onComposerKeydown(event, '${ctxId}')"></textarea>
+        <div class="cmt-action-row">
+          <button class="cmt-icon-btn" onclick="openCommentAttach('${ctxId}')" title="Attach">${renderIcon('attach', 18)}</button>
+          <input type="file" id="cmt-file-${ctxId}" multiple hidden accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt" onchange="handleCommentFileSelect('${ctxId}', this)"/>
+          <button class="cmt-icon-btn cmt-mention-btn" onclick="toggleMentionPopover('${ctxId}')" title="Mention">@</button>
+          <div style="flex:1;"></div>
+          <button class="btn btn-primary btn-sm" onclick="submitComposer('${ctxId}')">${postLabel}</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+window.submitComposer = function(ctxId) {
+  const input = document.getElementById(`cmt-text-${ctxId}`);
+  const text = (input?.value || '').trim();
+  const st = _getComposerState(ctxId);
+  if (!text && !st.attachments.length) return;
+
+  const mentionIds = Array.from(st.mentions);
+  const entry = {
+    author: DATA.user.name, initials: DATA.user.initials,
+    time: 'just now', date: 'just now', text,
+    attachments: st.attachments,
+    mentions: mentionIds,
+  };
+
+  let successLabel;
+  if (ctxId === 'main') {
+    entry.id = ticket.comments.length + 1;
+    entry.isInternal = true;
+    entry.replies = [];
+    ticket.comments.push(entry);
+    successLabel = 'Comment added';
+  } else {
+    const parentId = Number(ctxId.slice('reply-'.length));
+    const parent = ticket.comments.find(c => c.id === parentId);
+    if (!parent) return;
+    entry.id = Date.now();
+    parent.replies = parent.replies || [];
+    parent.replies.push(entry);
+    _expandedReplies.add(parentId);
+    _replyingTo = null;
+    successLabel = 'Reply added';
+  }
+
+  _resetComposerState(ctxId);
+  closeMentionPopover(ctxId);
+  // The main composer lives outside #td-comments-list, so it survives
+  // _refreshComments() untouched — its own DOM needs an explicit reset
+  // (the reply composer doesn't need this: closing the reply removes
+  // its DOM entirely on the same refresh).
+  if (input) input.value = '';
+  _refreshComposerAttachPreview(ctxId);
+  _refreshComments();
+  showToast(successLabel + _mentionToastSuffix(mentionIds), 'success');
+};
+
 function _replyRowsHTML(replies, parentId) {
   if (!replies?.length) return '';
   const isOpen = _expandedReplies.has(parentId);
@@ -1004,7 +1245,8 @@ function _replyRowsHTML(replies, parentId) {
       <div style="flex:1;min-width:0;">
         <span style="font-size:13px;font-weight:700;color:var(--text);">${r.author}</span>
         <span style="font-size:12px;color:var(--text-light);margin-left:6px;">${r.date || r.time || ''}</span>
-        <div style="font-size:13px;color:var(--text);line-height:1.5;">${r.text}</div>
+        <div style="font-size:13px;color:var(--text);line-height:1.5;">${_mentionize(_escapeHTML(r.text), r.mentions)}</div>
+        ${r.attachments?.length ? `<div class="cmt-attach-preview">${_attachmentChipsHTML(r.attachments, null, false)}</div>` : ''}
       </div>
     </div>
   `).join('') : '';
@@ -1026,14 +1268,13 @@ function _commentItemHTML(c) {
         <span class="comment-name">${c.author}</span>
         <span class="comment-time">${c.date || c.time || ''}</span>
         ${c.isInternal === false ? `<span class="badge" style="background:var(--comment-customer-border);margin-left:6px;">Sent</span>` : ''}
-        <div class="comment-text">${c.text}</div>
-        <div onclick="startReply(${c.id})" style="font-size:13px;color:var(--accent);cursor:pointer;margin-top:4px;">Reply</div>
+        <div class="comment-text">${_mentionize(_escapeHTML(c.text), c.mentions)}</div>
+        ${c.attachments?.length ? `<div class="cmt-attach-preview">${_attachmentChipsHTML(c.attachments, null, false)}</div>` : ''}
+        <div onclick="startReply(${c.id})" style="font-size:13px;color:var(--accent);cursor:pointer;margin-top:4px;">${isReplying ? 'Cancel' : 'Reply'}</div>
         ${_replyRowsHTML(c.replies, c.id)}
         ${isReplying ? `
-          <div style="display:flex;align-items:center;gap:var(--sp-2);margin-top:var(--sp-2);">
-            ${renderAvatar(DATA.user.name, '#4A72A8', 'sm')}
-            <input type="text" id="reply-text-${c.id}" class="input-field" placeholder="Write a reply…" style="height:36px;font-size:13px;"
-              onkeydown="if(event.key==='Enter') submitReply(${c.id})"/>
+          <div style="margin-top:var(--sp-2);">
+            ${_composerHTML('reply-' + c.id, 'Write a reply…', 'Post reply')}
           </div>
         ` : ''}
       </div>
@@ -1054,9 +1295,9 @@ function _latestCommentEntry() {
   const last = ticket.comments[ticket.comments.length - 1];
   if (last.replies?.length) {
     const reply = last.replies[last.replies.length - 1];
-    return { author: reply.author, initials: reply.initials, text: reply.text, time: reply.date || reply.time };
+    return { author: reply.author, initials: reply.initials, text: reply.text, mentions: reply.mentions, time: reply.date || reply.time };
   }
-  return { author: last.author, initials: last.initials, text: last.text, time: last.date || last.time };
+  return { author: last.author, initials: last.initials, text: last.text, mentions: last.mentions, time: last.date || last.time };
 }
 
 function _commentsSummaryHTML() {
@@ -1079,7 +1320,7 @@ function _commentsSummaryHTML() {
         <div class="comment-body">
           <span class="comment-name">${entry.author}</span>
           <span class="comment-time">${entry.time || ''}</span>
-          <div class="comment-text">${entry.text}</div>
+          <div class="comment-text">${_mentionize(_escapeHTML(entry.text), entry.mentions)}</div>
         </div>
       </div>
       <div class="td-summary-viewall">View all ${count} comment${count === 1 ? '' : 's'} ${renderIcon('chevron_right', 15)}</div>
@@ -1096,17 +1337,14 @@ function _refreshComments() {
 /* ----- Dedicated Comments bottom sheet ----- */
 window.openCommentsSheet = function(focusInput) {
   openSheet('comments', _commentsSheetBodyHTML(), 'Comments');
-  if (focusInput) setTimeout(() => document.getElementById('td-comment-input')?.focus(), 50);
+  if (focusInput) setTimeout(() => document.getElementById('cmt-text-main')?.focus(), 50);
 };
 
 function _commentsSheetBodyHTML() {
   return `
     <div id="td-comments-list">${_commentsListHTML()}</div>
     <div class="td-add-comment">
-      <textarea id="td-comment-input" class="input-field" placeholder="Write a comment" rows="2"
-        style="resize:none;"
-        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitComment();}"></textarea>
-      <button class="btn btn-primary btn-sm" style="margin-top:var(--sp-2);" onclick="submitComment()">Post comment</button>
+      ${_composerHTML('main', 'Write a comment', 'Post comment')}
     </div>
   `;
 }
@@ -1116,31 +1354,15 @@ window.toggleReplies = function(id) {
   _refreshComments();
 };
 window.startReply = function(id) {
-  _replyingTo = _replyingTo === id ? null : id;
+  if (_replyingTo === id) {
+    _discardComposerState('reply-' + id);
+    _replyingTo = null;
+  } else {
+    if (_replyingTo !== null) _discardComposerState('reply-' + _replyingTo);
+    _replyingTo = id;
+  }
   _refreshComments();
-  setTimeout(() => document.getElementById(`reply-text-${id}`)?.focus(), 50);
-};
-window.submitReply = function(parentId) {
-  const inp = document.getElementById(`reply-text-${parentId}`);
-  const text = inp?.value?.trim();
-  if (!text) return;
-  const parent = ticket.comments.find(c => c.id === parentId);
-  if (!parent) return;
-  parent.replies = parent.replies || [];
-  parent.replies.push({ id: Date.now(), author: DATA.user.name, initials: DATA.user.initials, date: 'just now', text });
-  _expandedReplies.add(parentId);
-  _replyingTo = null;
-  _refreshComments();
-  showToast('Reply added', 'success');
-};
-window.submitComment = function() {
-  const input = document.getElementById('td-comment-input');
-  const text = input?.value?.trim();
-  if (!text) return;
-  ticket.comments.push({ id: ticket.comments.length + 1, author: DATA.user.name, initials: DATA.user.initials, time: 'just now', date: 'just now', text, isInternal: true, replies: [] });
-  input.value = '';
-  _refreshComments();
-  showToast('Comment added', 'success');
+  setTimeout(() => document.getElementById(`cmt-text-reply-${id}`)?.focus(), 50);
 };
 
 /* ============================================================
