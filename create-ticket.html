@@ -351,7 +351,7 @@ window.pickOwner = function(id) {
 window.openDatePicker = function() {
   const body = `
     <div style="padding:var(--sp-4);">
-      <input type="date" id="ct-date-input" class="input-field" value="${CT.dateISO}">
+      <input type="date" id="ct-date-input" class="input-field" value="${CT.dateISO}" max="${_todayISO()}">
     </div>
     <div class="sheet-footer">
       <button class="btn btn-primary btn-full" onclick="applyDatePicker()">Apply</button>
