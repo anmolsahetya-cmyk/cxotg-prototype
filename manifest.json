@@ -1,0 +1,16 @@
+{
+  "name": "QuestionPro CX",
+  "short_name": "Pearl CX",
+  "description": "QuestionPro CX support app — dashboard, tickets, and closed-loop follow-ups.",
+  "start_url": "marketing.html",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F5F5F5",
+  "theme_color": "#1b87e6",
+  "icons": [
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
