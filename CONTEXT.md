@@ -44,6 +44,21 @@ but deliberately left unused — AI-assisted surfaces (e.g. the Send Email flow'
 sheets) use the standard `--accent` blue like the rest of the app, to keep one accent language
 app-wide rather than introduce a second one for AI content.
 
+## Priority filter hand-off (Dashboard → Closedloop)
+
+Dashboard's Closedloop donut and its legend rows are tap targets — clicking a priority
+(Critical/High/Medium/Low) navigates to Closedloop (`ticket-list.html`) pre-filtered to that
+priority. Implemented via the same `localStorage` hand-off pattern as Ticket Detail's AI-tag
+chips (`pendingTagFilter`): a `pendingPriorityFilter` key is set before navigating, then read
+and cleared by Closedloop on load.
+
+Closedloop's segmented status tab (Escalated/New/Open/Resolved) and its `filters.priority` are
+otherwise independent — filtering by tab happens first, then priority narrows further. Any
+active priority filter bypasses the tab entirely (same rule as search and tag filters), so it
+always shows every ticket of that priority across all statuses, not just the ones in the
+currently active tab. This applies whether the priority filter came from the dashboard
+hand-off or from picking a Priority chip in Closedloop's own Filter sheet.
+
 ## Send Email flow
 
 The "Respond via email" compose experience (`send-email.html`), reached as a handoff action

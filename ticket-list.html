@@ -204,11 +204,19 @@ if (pendingTagFilter) {
   localStorage.removeItem('pendingTagFilter');
 }
 
+/* Dashboard's Closedloop donut/legend hand off a priority here to pre-filter the list. */
+const pendingPriorityFilter = localStorage.getItem('pendingPriorityFilter');
+if (pendingPriorityFilter !== null) {
+  clState.filters.priority = [parseInt(pendingPriorityFilter, 10)];
+  clState.filterCount += 1;
+  localStorage.removeItem('pendingPriorityFilter');
+}
+
 /* ============================================================
    Filter logic
    ============================================================ */
 function getFilteredTickets() {
-  const bypassTab = clState.searchQuery || clState.filters.tags.length > 0;
+  const bypassTab = clState.searchQuery || clState.filters.tags.length > 0 || clState.filters.priority.length > 0;
   let tickets = bypassTab
     ? DATA.tickets.slice()
     : DATA.tickets.filter(t => _TAB_STATUS_MAP[clState.tab].includes(t.statusId));
@@ -333,7 +341,6 @@ function renderClosedLoop() {
         segmentLabelId: 'cl-segment-label',
         onSegmentClick: "openSegmentSheet(clState.segment, onClSegmentSelect)",
         notificationCount: DATA.notificationCount,
-        bordered: true,
       })}
 
       <!-- Date + Search + Filter row -->
@@ -342,7 +349,7 @@ function renderClosedLoop() {
       </div>
 
       <!-- Segmented tabs (status) -->
-      <div id="cl-tabs" style="display:${(clState.searchQuery || clState.filters.tags.length) ? 'none' : ''};flex-shrink:0;">
+      <div id="cl-tabs" style="display:${(clState.searchQuery || clState.filters.tags.length || clState.filters.priority.length) ? 'none' : ''};flex-shrink:0;">
         ${_segmentedControlHTML()}
       </div>
 

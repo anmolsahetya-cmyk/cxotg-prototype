@@ -282,6 +282,17 @@
       align-items: center;
       gap: 8px;
       padding: 5px 0;
+      cursor: pointer;
+      border-radius: 8px;
+    }
+    .cl-legend-row:active {
+      background: #F3F5F8;
+    }
+    .cl-donut-seg {
+      cursor: pointer;
+    }
+    .cl-donut-seg:active {
+      opacity: 0.75;
     }
     .cl-legend-sq {
       width: 12px;
@@ -383,16 +394,16 @@ function renderClosedloopDonut(cl) {
     <svg viewBox="0 0 280 280" width="260" height="260" xmlns="http://www.w3.org/2000/svg" style="display:block;">
 
       <!-- Critical 3%: 270° → 280.8° -->
-      <path d="M 140 20 A 120 120 0 0 1 162.49 22.12 L 154.99 61.42 A 80 80 0 0 0 140 60 Z" fill="#F85271"/>
+      <path class="cl-donut-seg" onclick="goToPriorityFilter(3)" d="M 140 20 A 120 120 0 0 1 162.49 22.12 L 154.99 61.42 A 80 80 0 0 0 140 60 Z" fill="#F85271"/>
 
       <!-- Low 58%: 280.8° → 129.6° (large arc, sweep=1) -->
-      <path d="M 162.49 22.12 A 120 120 0 1 1 63.51 232.46 L 88.99 201.64 A 80 80 0 1 0 154.99 61.42 Z" fill="#42BD84"/>
+      <path class="cl-donut-seg" onclick="goToPriorityFilter(0)" d="M 162.49 22.12 A 120 120 0 1 1 63.51 232.46 L 88.99 201.64 A 80 80 0 1 0 154.99 61.42 Z" fill="#42BD84"/>
 
       <!-- Medium 21%: 129.6° → 205.2° -->
-      <path d="M 63.51 232.46 A 120 120 0 0 1 31.42 88.90 L 67.62 105.94 A 80 80 0 0 0 88.99 201.64 Z" fill="#F1DA7E"/>
+      <path class="cl-donut-seg" onclick="goToPriorityFilter(1)" d="M 63.51 232.46 A 120 120 0 0 1 31.42 88.90 L 67.62 105.94 A 80 80 0 0 0 88.99 201.64 Z" fill="#F1DA7E"/>
 
       <!-- High 18%: 205.2° → 270° -->
-      <path d="M 31.42 88.90 A 120 120 0 0 1 140 20 L 140 60 A 80 80 0 0 0 67.62 105.94 Z" fill="#F9876A"/>
+      <path class="cl-donut-seg" onclick="goToPriorityFilter(2)" d="M 31.42 88.90 A 120 120 0 0 1 140 20 L 140 60 A 80 80 0 0 0 67.62 105.94 Z" fill="#F9876A"/>
 
       <!-- Center labels -->
       <text x="140" y="133" font-family="FiraSans,-apple-system,sans-serif" font-size="26" font-weight="700" fill="#1B3380" text-anchor="middle">${cl.totalTickets}</text>
@@ -516,6 +527,11 @@ function getQaCount() {
 window.openTicket = function(id) {
   localStorage.setItem('selectedTicketId', id);
   window.location.href = 'ticket-detail.html';
+};
+
+window.goToPriorityFilter = function(priorityId) {
+  localStorage.setItem('pendingPriorityFilter', String(priorityId));
+  window.location.href = 'ticket-list.html';
 };
 
 function _initQaSwipe() {
@@ -649,25 +665,25 @@ function renderDashboard() {
 
           <!-- Closedloop legend -->
           <div class="cl-legend">
-            <div class="cl-legend-row">
+            <div class="cl-legend-row" onclick="goToPriorityFilter(3)">
               <div class="cl-legend-sq" style="background:#F85271;"></div>
               <span class="cl-legend-name">Critical</span>
               <span class="cl-legend-pct">${cl.critical.pct}%</span>
               <span class="cl-legend-count">${cl.critical.count}</span>
             </div>
-            <div class="cl-legend-row">
+            <div class="cl-legend-row" onclick="goToPriorityFilter(2)">
               <div class="cl-legend-sq" style="background:#F9876A;"></div>
               <span class="cl-legend-name">High</span>
               <span class="cl-legend-pct">${cl.high.pct}%</span>
               <span class="cl-legend-count">${cl.high.count}</span>
             </div>
-            <div class="cl-legend-row">
+            <div class="cl-legend-row" onclick="goToPriorityFilter(1)">
               <div class="cl-legend-sq" style="background:#F1DA7E;"></div>
               <span class="cl-legend-name">Medium</span>
               <span class="cl-legend-pct">${cl.medium.pct}%</span>
               <span class="cl-legend-count">${cl.medium.count}</span>
             </div>
-            <div class="cl-legend-row">
+            <div class="cl-legend-row" onclick="goToPriorityFilter(0)">
               <div class="cl-legend-sq" style="background:#42BD84;"></div>
               <span class="cl-legend-name">Low</span>
               <span class="cl-legend-pct">${cl.low.pct}%</span>
