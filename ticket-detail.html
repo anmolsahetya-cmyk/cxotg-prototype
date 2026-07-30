@@ -1237,17 +1237,41 @@ function _initJumpNavObserver() {
   const sections = ['sec-top', 'sec-rootcause', 'sec-comments', 'sec-activity']
     .map(id => document.getElementById(id)).filter(Boolean);
 
-  const observer = new IntersectionObserver((entries) => {
+  const setActive = (id) => {
+    chips.querySelectorAll('.td-chip').forEach(c => c.classList.remove('active'));
+    chips.querySelector(`[data-target="${id}"]`)?.classList.add('active');
+  };
+
+  // Active chip = the last (bottom-most) section that has started to
+  // appear anywhere in the scroll body — not one that's crossed some
+  // fixed line, and not one that's fully exited. A fixed-line approach
+  // breaks here: Root cause/Comments/Activity are short and clustered
+  // near the bottom, so their tops never reach a line partway down the
+  // viewport even at max scroll. Checking "has any part appeared" (top
+  // above the viewport's bottom edge) and taking the last one that
+  // qualifies means the switch happens the moment the next section peeks
+  // in, and naturally lands on the final section once you're scrolled
+  // to the bottom.
+  const recompute = () => {
     if (_jumpNavLock) return;
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        chips.querySelectorAll('.td-chip').forEach(c => c.classList.remove('active'));
-        chips.querySelector(`[data-target="${entry.target.id}"]`)?.classList.add('active');
-      }
-    });
-  }, { root: body, rootMargin: '-10% 0px -60% 0px', threshold: 0 });
+    const bodyRect = body.getBoundingClientRect();
+    let activeId = sections[0]?.id;
+    for (const s of sections) {
+      if (s.getBoundingClientRect().top < bodyRect.bottom) activeId = s.id;
+    }
+    if (activeId) setActive(activeId);
+  };
+
+  const observer = new IntersectionObserver(() => recompute(), {
+    root: body,
+    rootMargin: '0px 0px 0px 0px',
+    threshold: [0, 0.01, 0.25, 0.5, 0.75, 1],
+  });
+
+  body.addEventListener('scroll', recompute, { passive: true });
 
   sections.forEach(s => observer.observe(s));
+  recompute();
 }
 
 /* ============================================================
