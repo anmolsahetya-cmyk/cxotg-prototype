@@ -181,22 +181,11 @@ function renderAccount() {
             </span>
           </div>
           <div class="acct-row">
-            <span class="acct-row-label">Ticket snooze time</span>
+            <span class="acct-row-label">Ticket snooze for days</span>
             <span style="display:flex;align-items:center;gap:10px;">
               <button onclick="changeSnoozeDays(-1)" style="width:28px;height:28px;border-radius:14px;border:1px solid #D0D3D8;background:#fff;color:#1B3380;font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">−</button>
               <span id="snooze-days-value" class="acct-row-value" style="min-width:16px;text-align:center;">${snoozeDays}</span>
               <button onclick="changeSnoozeDays(1)" style="width:28px;height:28px;border-radius:14px;border:1px solid #D0D3D8;background:#fff;color:#1B3380;font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">+</button>
-            </span>
-          </div>
-        </div>
-
-        <div class="acct-section-label">Notifications</div>
-        <div class="acct-card">
-          <div class="acct-row" style="cursor:pointer;" onclick="window.location.href='notifications.html'">
-            <span class="acct-row-label" style="color:#404A5B;font-weight:500;">View notifications</span>
-            <span style="display:flex;align-items:center;gap:6px;">
-              <span class="badge">${DATA.notificationCount}</span>
-              ${renderIcon('chevron_right', 16)}
             </span>
           </div>
         </div>
