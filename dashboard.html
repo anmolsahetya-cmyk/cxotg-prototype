@@ -785,9 +785,7 @@ function renderDashboard() {
       </div><!-- end dash-body -->
 
       <!-- FAB -->
-      <a class="fab" href="create-ticket.html" title="Create ticket">
-        ${renderIcon('plus', 24)}
-      </a>
+      ${renderFab()}
 
     </div>
   `;
@@ -827,6 +825,7 @@ function onDashRefresh() {
   document.body.innerHTML = renderPhoneShell(renderDashboard(), 'dashboard');
   _initQaSwipe();
   initPullToRefresh('dash-body', onDashRefresh);
+  initFabScrollCollapse('dash-body');
   showToast('Updated', 'success');
 }
 
@@ -834,6 +833,7 @@ function onDashRefresh() {
 document.body.innerHTML = renderPhoneShell(renderDashboard(), 'dashboard');
 _initQaSwipe();
 initPullToRefresh('dash-body', onDashRefresh);
+initFabScrollCollapse('dash-body');
 </script>
 </body>
 </html>

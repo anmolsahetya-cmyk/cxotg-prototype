@@ -394,6 +394,32 @@ function renderAppBar({ segment, segmentLabelId, onSegmentClick, notificationCou
   `;
 }
 
+/* ----- FAB: "Create ticket" (Dashboard / Closedloop) -----
+   Extended pill by default; collapses to icon-only while the caller's
+   scroll container is scrolling down, re-expands on scroll-up/near-top.
+   Pair with initFabScrollCollapse(scrollContainerId) after each full render. */
+function renderFab({ href = 'create-ticket.html', label = 'New Ticket', title = 'Create ticket' } = {}) {
+  return `
+    <a class="fab" id="fab-create" href="${href}" title="${title}">
+      ${renderIcon('plus', 20)}
+      <span class="fab-label">${label}</span>
+    </a>
+  `;
+}
+
+function initFabScrollCollapse(scrollContainerId, fabId = 'fab-create') {
+  const fab = document.getElementById(fabId);
+  const scroller = document.getElementById(scrollContainerId);
+  if (!fab || !scroller) return;
+  let lastY = scroller.scrollTop;
+  scroller.addEventListener('scroll', () => {
+    const y = scroller.scrollTop;
+    if (y > lastY + 4) fab.classList.add('is-collapsed');
+    else if (y < lastY - 4 || y < 10) fab.classList.remove('is-collapsed');
+    lastY = y;
+  }, { passive: true });
+}
+
 /* ----- Date filter button (Dashboard / Closedloop app bars) ----- */
 function renderDateFilterButton(label, id, onclick) {
   return `

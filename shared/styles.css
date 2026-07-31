@@ -492,25 +492,48 @@ body {
 
 .btn-disabled  { opacity: 0.4; pointer-events: none; }
 
-/* ----- FAB ----- */
+/* ----- FAB (extended, collapses to icon-only on scroll-down) ----- */
 .fab {
   position: absolute;
   bottom: 24px;
   right: 20px;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: white;
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 8px;
+  height: 52px;
+  padding: 0 20px 0 16px;
+  border-radius: 26px;
+  background: var(--accent);
+  color: white;
+  text-decoration: none;
   box-shadow: 0 4px 12px rgba(27,135,230,0.4);
   cursor: pointer;
   z-index: 10;
-  transition: transform 150ms;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: padding 200ms ease, width 200ms ease, gap 200ms ease, transform 150ms;
 }
 .fab:active { transform: scale(0.94); }
+.fab-label {
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 600;
+  max-width: 120px;
+  transition: max-width 200ms ease, opacity 150ms ease, margin 200ms ease;
+}
+/* Collapsed (icon-only): gap must also go to 0, otherwise the reserved
+   gap between icon and the now-zero-width label pushes the icon off-centre. */
+.fab.is-collapsed {
+  width: 52px;
+  padding: 0;
+  gap: 0;
+  justify-content: center;
+}
+.fab.is-collapsed .fab-label {
+  max-width: 0;
+  opacity: 0;
+  margin: 0;
+}
 
 /* ----- Input fields ----- */
 .input-group {
