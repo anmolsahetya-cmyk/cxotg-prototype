@@ -77,12 +77,30 @@ function renderPhoneShell(screenHTML, activeTab = '', opts = {}) {
   const showBottomNav = opts.hideBottomNav !== true && _BOTTOM_NAV_TABS.includes(activeTab);
   return `
     <div class="device-shell">
+      <div class="status-bar">
+        <span>9:41</span>
+        <div class="status-bar-icons">
+          <svg width="16" height="12" viewBox="0 0 16 12" fill="currentColor">
+            <rect x="0" y="3" width="3" height="9" rx="1" opacity="0.4"/>
+            <rect x="4" y="2" width="3" height="10" rx="1" opacity="0.6"/>
+            <rect x="8" y="1" width="3" height="11" rx="1" opacity="0.8"/>
+            <rect x="12" y="0" width="3" height="12" rx="1"/>
+          </svg>
+          <span style="font-size:11px;font-weight:700;">5G</span>
+          <svg width="25" height="12" viewBox="0 0 25 12" fill="currentColor">
+            <rect x="0" y="1" width="21" height="10" rx="2" stroke="currentColor" stroke-width="1" fill="none" opacity="0.35"/>
+            <rect x="22" y="4" width="3" height="4" rx="1" opacity="0.35"/>
+            <rect x="1" y="2" width="16" height="8" rx="1"/>
+          </svg>
+        </div>
+      </div>
       <div id="screen" style="flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column;">
         <div style="position:absolute;inset:0;display:flex;flex-direction:column;">
           ${screenHTML}
         </div>
       </div>
       ${showBottomNav ? renderBottomNav(activeTab) : ''}
+      <div class="home-indicator"></div>
     </div>
   `;
 }

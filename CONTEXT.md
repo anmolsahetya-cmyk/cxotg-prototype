@@ -30,6 +30,36 @@ one-off classes like `.ov-card`/`.dd-box`) are considered legacy drift to be mig
 tokens, not a competing standard to preserve. New tokens are added here when a redesign needs
 a value the system doesn't yet have.
 
+## Device shell (responsive breakpoint)
+
+The `<div class="device-shell">` wrapper rendered by `renderPhoneShell()`
+(`shared/components.js`) behaves differently depending on viewport width, via a pure CSS
+`max-width: 480px` media query — no user-agent/device detection — so it reacts live to window
+resize:
+
+- **Mobile viewport** (≤480px wide) — full-bleed, edge-to-edge, filling the real viewport with
+  real device chrome (status bar, home indicator) drawn by the OS/browser, using safe-area
+  insets. This is today's PWA behavior (see "Turn prototype into an installable PWA" below) and
+  is unchanged by this breakpoint.
+- **Desktop/framed viewport** (>480px wide) — restores the pre-PWA phone-bezel mockup: a fixed
+  390×844 frame (rounded corners, shadow), a navy `#1A2A4A` page backdrop, a fake status bar
+  ("9:41" + signal/battery icons), and a home-indicator bar — exactly as it looked before the
+  full-bleed-app-shell commit.
+
+This is a deliberate width-only rule: a phone rotated to landscape (viewport width > 480px) is
+treated the same as a resized desktop window and gets the framed mockup, not full-bleed. Accepted
+because the app is designed portrait-only anyway (`manifest.json` locks `orientation: portrait`
+for the installed PWA) and it keeps the breakpoint pure CSS with no JS detection branch.
+
+Applies uniformly to every screen built on `renderPhoneShell()` (dashboard, Closedloop, Ticket
+Detail and its legacy variant, Account, New Ticket, Send Email, Marketing/onboarding,
+Notifications). `index.html` (the standalone prototype hub) is a separate, self-contained layout
+and is not part of this.
+
+The framed/backdrop/status-bar treatment is web-preview-only chrome for viewing the prototype at
+desktop widths — it is explicitly exempt from the React Native portability constraint below;
+there is no RN equivalent, because the RN app itself always is the mobile experience.
+
 ## Date filter sheet
 
 A shared bottom-sheet component (`openDateFilterSheet(currentLabel, onApply)` in
@@ -104,7 +134,10 @@ anywhere in the Ticket Details flow.
 
 Every mockup/prototype screen built in this project must be replicable in **React Native
 0.77.0+**. This is a hard constraint on the HTML/CSS/JS used here, not just a future porting
-note:
+note. Exception: the desktop-width phone-bezel frame/backdrop/status-bar described under
+"Device shell (responsive breakpoint)" above is web-preview-only chrome with no RN equivalent —
+it exists so the prototype looks reasonable when viewed in a regular desktop browser, not as
+part of the app being mocked.
 
 - Layouts must map to Flexbox (RN's only layout system) — no CSS Grid, no `position: absolute`
   for structural layout (overlays/sheets are fine, RN supports absolute positioning for those
