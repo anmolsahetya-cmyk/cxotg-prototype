@@ -13,286 +13,42 @@
   <title>Pearl CX — Onboarding</title>
   <link rel="stylesheet" href="shared/styles.css">
   <style>
-    /*
-      Exact values from IntroPage.js + MarketingScreen.js ($rem=15, iOS phone):
-        safeAreaView.paddingHorizontal = PaddingConstants.tab2 = 17.5px
-        safeAreaView.paddingBottom     = PaddingConstants.tab2 = 17.5px
-        logoImageView.marginTop        = MarginConstants.tab1_4x = 30px
-        logoImageView.marginBottom     = MarginConstants.tab1_8x = 60px
-        introView.paddingHorizontal    = MarginConstants.tab1_4x = 30px
-        introTextHeader.fontSize (iOS) = TextSizes.donutPercentText = 33px, FiraSans-Regular
-        introText.fontSize (iOS)       = TextSizes.largeText = 19.5px, FiraSans-Regular
-        introText.marginTop            = MarginConstants.tab1 = 7.5px
-        both text colors               = Colors.filterIconColor = #545E6B
-        imageSize                      = Math.round(390 * 0.75) = 293px
-        dots: dotColor=#909090, activeDotColor=#1b87e6, bottom=30px
-        button: QPButton variant=primary, full-width, inside paddingHorizontal container
-    */
+    /* ----- Shared auth text styles ----- */
+    .auth-title { font-size: var(--text-2xl); font-weight: 700; color: var(--text); margin-bottom: var(--sp-2); }
+    .auth-subtitle { font-size: var(--text-sm); color: var(--text-light); margin-bottom: var(--sp-5); line-height: 1.5; }
+    .auth-cta { margin-top: var(--sp-2); }
+    .auth-back-link { display: inline-flex; align-items: center; gap: var(--sp-2); font-size: var(--text-sm); font-weight: 600; color: var(--text-light); background: none; border: none; cursor: pointer; margin-bottom: var(--sp-5); padding: 0; align-self: flex-start; }
+    .auth-forgot-link { text-align: center; margin-top: var(--sp-5); font-size: var(--text-base); font-weight: 600; color: var(--accent); background: none; border: none; cursor: pointer; }
+    .auth-eye-toggle { pointer-events: auto; cursor: pointer; color: var(--text-light); display: flex; }
+    .auth-eye-toggle:hover { color: var(--text); }
+    .auth-icon-badge { width: 64px; height: 64px; border-radius: 50%; background: var(--accent-bg); color: var(--accent); display: flex; align-items: center; justify-content: center; margin: 0 auto var(--sp-4); }
+    .auth-success { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: var(--sp-3); }
+    .auth-success-icon { width: 64px; height: 64px; border-radius: 50%; background: rgba(63,202,90,0.12); color: var(--success); display: flex; align-items: center; justify-content: center; margin-bottom: var(--sp-2); }
+    .auth-success .auth-cta { width: 100%; margin-top: var(--sp-4); }
+    .auth-center { text-align: center; }
+    .checkbox.checked { color: #fff; }
 
-    .marketing-screen {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      background: #fff;
-      height: 100%;
-      /* safeAreaView paddingHorizontal */
-      padding-left: 17.5px;
-      padding-right: 17.5px;
-      padding-bottom: 17.5px;
-    }
+    /* ----- Onboarding — scannable feature list (no carousel) ----- */
+    .onboard-screen { flex: 1; display: flex; flex-direction: column; background: var(--bg-card); height: 100%; }
+    .onboard-header { padding: var(--sp-6) var(--sp-5) var(--sp-4); flex-shrink: 0; }
+    .onboard-logo-row img { width: 112px; height: auto; margin-bottom: var(--sp-5); }
+    .onboard-headline { font-size: var(--text-2xl); font-weight: 700; color: var(--text); line-height: 1.25; margin-bottom: var(--sp-2); }
+    .onboard-sub { font-size: var(--text-sm); color: var(--text-light); line-height: 1.5; }
+    .onboard-list { flex: 1; overflow-y: auto; padding: 0 var(--sp-5); }
+    .onboard-row { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-4) 0; border-bottom: 1px solid var(--divider); }
+    .onboard-row:last-child { border-bottom: none; }
+    .onboard-row-icon { width: 56px; height: 56px; border-radius: 50%; background: var(--accent-bg); display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; }
+    .onboard-row-icon img { width: 38px; height: 38px; object-fit: contain; }
+    .onboard-row-body { flex: 1; }
+    .onboard-row-title { font-size: var(--text-base); font-weight: 700; color: var(--text); margin-bottom: 2px; }
+    .onboard-row-desc { font-size: var(--text-sm); color: var(--text-light); line-height: 1.4; }
+    .onboard-footer { padding: var(--sp-4) var(--sp-5); flex-shrink: 0; }
 
-    .swiper-container {
-      flex: 1;
-      position: relative;
-      overflow: hidden;
-      min-height: 0;
-    }
-
-    .slides-track {
-      display: flex;
-      width: 400%;
-      height: 100%;
-      transition: transform 380ms cubic-bezier(0.25,0.46,0.45,0.94);
-    }
-
-    .slide {
-      width: 25%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-    }
-
-    .slide-image-wrap {
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-top: 30px;
-      margin-bottom: 60px;
-      flex-shrink: 0;
-    }
-
-    .slide-image-wrap img {
-      width: 293px;
-      height: 293px;
-      object-fit: contain;
-    }
-
-    .slide-text {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      /* introView.paddingHorizontal — adds to parent's 17.5px */
-      padding-left: 30px;
-      padding-right: 30px;
-    }
-
-    .slide-title {
-      font-size: 33px;
-      font-weight: 400; /* FiraSans-Regular */
-      color: #545E6B;
-      line-height: 1.2;
-    }
-
-    .slide-desc {
-      font-size: 19.5px;
-      font-weight: 400; /* FiraSans-Regular */
-      color: #545E6B;
-      line-height: 1.45;
-      margin-top: 7.5px;
-    }
-
-    /* Dots — positioned at bottom of swiper area */
-    .swiper-dots {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 8px;
-      padding: 20px 0 18px;
-      flex-shrink: 0;
-    }
-    .swiper-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #909090;
-      cursor: pointer;
-      transition: background 200ms;
-      flex-shrink: 0;
-    }
-    .swiper-dot.active {
-      background: #1b87e6;
-    }
-
-    /* QPButton sits inside the paddingHorizontal container */
-    .marketing-footer {
-      flex-shrink: 0;
-    }
-
-    /* ---- Login / ForgotPassword shared ---- */
-
-    /* Full-screen background image, same as LoginBackground */
-    .login-bg {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      background-image: url('assets/background1.png');
-      background-size: cover;
-      background-position: center top;
-      overflow-y: auto;
-    }
-    .login-bg::-webkit-scrollbar { display: none; }
-
-    /* scrollContainer: flexGrow=1, justifyContent=space-between */
-    .login-scroll {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      padding-top: 17.5px; /* LoginBackground container paddingTop */
-    }
-
-    /* logoContainer: paddingTop=tab1_16x=120px, centered */
-    .login-logo-area {
-      padding-top: 120px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .login-logo-area img { width: 160px; height: 40px; object-fit: contain; }
-
-    /* VerticalSpaceBox height=tab1_4x=30px */
-    .login-logo-spacer { height: 30px; }
-
-    /* "CX On The Go": donutPercentRegularText = 33px, FiraSans-Regular, #545E6B */
-    .login-app-name {
-      font-size: 33px;
-      font-weight: 400;
-      color: #545E6B;
-      text-align: center;
-    }
-
-    /* Fields container: paddingTop=tab1_2x=15px, centered */
-    .login-fields {
-      padding-top: 15px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    /* QPTextField flat mode: bottom border only, floating label, width=390/1.05=371px */
-    .flat-field {
-      position: relative;
-      width: 371px;
-      margin-bottom: 27.5px;
-      padding: 0 7.5px;
-      box-sizing: border-box;
-    }
-    .flat-field-inner {
-      position: relative;
-      border-bottom: 1.5px solid #545E6B;
-      transition: border-color 150ms;
-    }
-    .flat-field-inner:focus-within { border-bottom-color: #1b87e6; }
-    .flat-field-inner:focus-within .flat-label { color: #1b87e6; top: 0; font-size: 12px; }
-    .flat-field-inner.has-value .flat-label { top: 0; font-size: 12px; }
-
-    .flat-label {
-      position: absolute;
-      left: 0;
-      top: 16px;
-      font-size: 15px;
-      font-weight: 400;
-      color: #9B9B9B;
-      pointer-events: none;
-      transition: top 150ms, font-size 150ms, color 150ms;
-    }
-    .flat-input {
-      display: block;
-      width: 100%;
-      height: 37.5px;
-      padding: 14px 0 4px;
-      border: none;
-      outline: none;
-      background: transparent;
-      font-size: 15px;
-      font-weight: 400;
-      color: #545E6B;
-      box-sizing: border-box;
-    }
-    .flat-input-eye {
-      position: absolute;
-      right: 0;
-      top: 10px;
-      color: #545E6B;
-      cursor: pointer;
-      display: flex;
-    }
-
-    /* Bottom actions: paddingBottom=tab1_2x=15px */
-    .login-bottom {
-      padding: 0 15px 15px; /* paddingHorizontal=tab1_2x=15px, paddingBottom=tab1_2x=15px */
-    }
-    /* Sign-in button: height=tab4=37.5px */
-    .login-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 37.5px;
-      background: #1b87e6;
-      border: none;
-      border-radius: 4px;
-      font-size: 16.5px; /* secondary2RegularText */
-      font-weight: 400;
-      color: #fff;
-      cursor: pointer;
-    }
-    /* Forgot password: height=37.5px, marginTop=17.5px, marginBottom=17.5px, 18px #1b87e6 */
-    .forgot-link {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 37.5px;
-      margin-top: 17.5px;
-      margin-bottom: 17.5px;
-      background: transparent;
-      border: none;
-      font-size: 18px;
-      font-weight: 400;
-      color: #1b87e6;
-      cursor: pointer;
-    }
-
-    /* ForgotPassword: description text */
-    /* fontSize=secondary=15px, FiraSans-Light, color=Colors.primary=#707070 */
-    /* marginVertical=tab1=7.5px, marginHorizontal=tab2=17.5px */
-    .forgot-desc {
-      font-size: 15px;
-      font-weight: 300; /* FiraSans-Light */
-      color: #707070;
-      text-align: center;
-      margin: 7.5px 17.5px;
-    }
-
-    /* Back button on forgot password */
-    .login-back-btn {
-      position: absolute;
-      top: 12px;
-      left: 8px;
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: transparent;
-      border: none;
-      color: #545E6B;
-      cursor: pointer;
-    }
+    /* ----- Sign in / Forgot password — centered card on tinted backdrop ----- */
+    .auth-backdrop { flex: 1; display: flex; flex-direction: column; justify-content: center; background: var(--bg-page); padding: var(--sp-5); overflow-y: auto; }
+    .auth-card { background: var(--bg-card); border-radius: var(--radius-xl); box-shadow: var(--shadow-md); padding: var(--sp-6) var(--sp-5); }
+    .auth-logo { display: block; width: 108px; height: auto; margin: 0 auto var(--sp-5); }
+    .auth-remember-row { padding: 0; margin: var(--sp-1) 0 var(--sp-5); }
   </style>
 </head>
 <body>
@@ -300,170 +56,130 @@
 <script src="shared/components.js"></script>
 <script>
 
-let currentSlide = 0;
-const TOTAL_SLIDES = 4;
-
-const slides = [
-  {
-    title: 'Swift ticket mastery',
-    desc: 'Handle customer tickets anywhere!\nEnsure customer satisfaction and\nteam success.',
-    img: 'assets/marketing_01.svg',
-  },
-  {
-    title: 'Customer pulse\ncheck',
-    desc: 'Rapidly respond to customers\nqueries and feedback, guaranteeing\nsatisfaction',
-    img: 'assets/marketing_02.svg',
-  },
-  {
-    title: 'Customer insights',
-    desc: 'Access NPS and satisfaction scores\ninstantly for continuous\nimprovement and success',
-    img: 'assets/marketing_03.svg',
-  },
-  {
-    title: 'Proactive issue\nresolution',
-    desc: 'Elevate support by promptly\naddressing major issues and\nensuring no gaps.',
-    img: 'assets/marketing_04.svg',
-  },
+const FEATURES = [
+  { title: 'Swift ticket mastery',  desc: 'Handle customer tickets from anywhere, without missing a beat.', img: 'assets/marketing_01.svg' },
+  { title: 'Customer pulse check',  desc: 'Respond fast to queries and feedback to keep every customer happy.', img: 'assets/marketing_02.svg' },
+  { title: 'Customer insights',     desc: 'See NPS and satisfaction scores the moment they come in.', img: 'assets/marketing_03.svg' },
+  { title: 'Proactive resolution',  desc: 'Catch major issues early so nothing falls through the cracks.', img: 'assets/marketing_04.svg' },
 ];
 
+/* ============================================================
+   Onboarding — scannable feature list
+   ============================================================ */
 function renderMarketing() {
   return `
-    <div class="marketing-screen">
-      <div class="swiper-container" id="swiper-container">
-        <div class="slides-track" id="slides-track">
-          ${slides.map(s => `
-            <div class="slide">
-              <div class="slide-image-wrap">
-                <img src="${s.img}" alt="" draggable="false"/>
-              </div>
-              <div class="slide-text">
-                <div class="slide-title">${s.title.replace(/\n/g,'<br>')}</div>
-                <div class="slide-desc">${s.desc.replace(/\n/g,'<br>')}</div>
-              </div>
+    <div class="onboard-screen">
+      <div class="onboard-header">
+        <div class="onboard-logo-row"><img src="assets/questionpro_banner.svg" alt="QuestionPro"/></div>
+        <div class="onboard-headline">Everything you need to delight customers</div>
+        <div class="onboard-sub">One inbox for every ticket, insight, and follow-up — built for support on the move.</div>
+      </div>
+      <div class="onboard-list">
+        ${FEATURES.map(f => `
+          <div class="onboard-row">
+            <div class="onboard-row-icon"><img src="${f.img}" alt=""/></div>
+            <div class="onboard-row-body">
+              <div class="onboard-row-title">${f.title}</div>
+              <div class="onboard-row-desc">${f.desc}</div>
             </div>
-          `).join('')}
-        </div>
+          </div>
+        `).join('')}
       </div>
-      <div class="swiper-dots" id="swiper-dots">
-        ${slides.map((_, i) => `<div class="swiper-dot${i === 0 ? ' active' : ''}" onclick="goToSlide(${i})"></div>`).join('')}
-      </div>
-      <div class="marketing-footer">
-        <button class="btn btn-primary btn-full" onclick="navigate(renderLogin)">Sign in</button>
+      <div class="onboard-footer">
+        <button class="btn btn-primary btn-full" onclick="navigate(renderLogin)">Continue</button>
       </div>
     </div>
   `;
 }
 
-function flatField(id, label, type, value) {
-  const hasValue = value ? ' has-value' : '';
-  return `
-    <div class="flat-field">
-      <div class="flat-field-inner${hasValue}" id="${id}-wrap">
-        <span class="flat-label">${label}</span>
-        <input
-          class="flat-input"
-          type="${type}"
-          id="${id}"
-          value="${value}"
-          autocomplete="off"
-          oninput="syncFlatField('${id}')"
-        />
-        ${type === 'password' ? `
-        <span class="flat-input-eye" onclick="toggleFlatPassword('${id}', this)">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-        </span>` : ''}
-      </div>
-    </div>`;
-}
+/* ============================================================
+   Sign in / Forgot password
+   Centered card on a tinted backdrop.
+   ============================================================ */
+let _rememberDevice = false;
+window._toggleRemember = function() {
+  _rememberDevice = !_rememberDevice;
+  const box = document.getElementById('remember-box');
+  if (!box) return;
+  box.classList.toggle('checked', _rememberDevice);
+  box.innerHTML = _rememberDevice ? renderIcon('check', 12) : '';
+};
 
 function renderLogin() {
   return `
-    <div class="login-bg">
-      <div class="login-scroll">
-        <div class="login-logo-area">
-          <img src="assets/questionpro_banner.svg" alt="QuestionPro" style="width:160px;height:40px;object-fit:contain;"/>
-          <div class="login-logo-spacer"></div>
-          <span class="login-app-name">CX On The Go</span>
+    <div class="auth-backdrop" id="auth-root">
+      <div class="auth-card">
+        <img class="auth-logo" src="assets/questionpro_banner.svg" alt="QuestionPro"/>
+        <div class="auth-title auth-center">Sign in to CX On The Go</div>
+        <div class="auth-subtitle auth-center">Access your team's workspace to manage tickets.</div>
+        <div class="input-group">
+          <label class="input-label" for="login-code">Access code</label>
+          <input type="text" id="login-code" class="input-field" value="RETAILCO" autocomplete="off"/>
         </div>
-
-        <div class="login-fields">
-          ${flatField('login-email',    'Email',       'text',     'sarah.chen@retailco.com')}
-          ${flatField('login-password', 'Password',    'password', '••••••••')}
-          ${flatField('login-code',     'Access code', 'text',     'RETAILCO')}
+        <div class="input-group">
+          <label class="input-label" for="login-email">Email</label>
+          <input type="email" id="login-email" class="input-field" value="sarah.chen@retailco.com" autocomplete="off"/>
         </div>
-
-        <div class="login-bottom">
-          <button class="login-btn" onclick="doLogin()">Sign in</button>
-          <button class="forgot-link" onclick="navigate(renderForgotPassword)">Forgot password?</button>
+        <div class="input-group">
+          <label class="input-label" for="login-password">Password</label>
+          <div class="input-field-wrap">
+            <input type="password" id="login-password" class="input-field" value="sunshine24" autocomplete="off"/>
+            <span class="input-field-icon auth-eye-toggle" onclick="_authTogglePassword('login-password', this)">${renderIcon('eye', 18)}</span>
+          </div>
         </div>
+        <div class="checkbox-row auth-remember-row" onclick="_toggleRemember()">
+          <div class="checkbox" id="remember-box"></div>
+          <span class="checkbox-label">Remember this device</span>
+        </div>
+        <button class="btn btn-primary btn-full auth-cta" onclick="doLogin()">Sign in</button>
+        <button class="auth-forgot-link" onclick="navigate(renderForgotPassword)">Forgot password?</button>
       </div>
     </div>
   `;
 }
 
-function renderForgotPassword() {
-  return `
-    <div class="login-bg" style="position:relative;">
-      <button class="login-back-btn" onclick="goBack()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-      </button>
-      <div class="login-scroll">
-        <div class="login-logo-area">
-          <img src="assets/questionpro_banner.svg" alt="QuestionPro" style="width:160px;height:40px;object-fit:contain;"/>
-        </div>
-
-        <div class="login-fields">
-          <p class="forgot-desc">Please enter the details below to reset your password.</p>
-          ${flatField('forgot-email', 'Email',       'text', '')}
-          ${flatField('forgot-code',  'Access code', 'text', '')}
-        </div>
-
-        <div class="login-bottom">
-          <button class="login-btn" onclick="sendReset()">Reset password</button>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-/* ---- Swiper ---- */
-window.goToSlide = function(index) {
-  currentSlide = index;
-  const track = document.getElementById('slides-track');
-  if (track) track.style.transform = `translateX(-${index * 25}%)`;
-  document.querySelectorAll('.swiper-dot').forEach((dot, i) => {
-    dot.classList.toggle('active', i === index);
-  });
-};
-
-let touchStartX = 0;
-function attachSwipeListeners() {
-  const container = document.getElementById('swiper-container');
-  if (!container) return;
-  container.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
-  container.addEventListener('touchend', e => {
-    const diff = touchStartX - e.changedTouches[0].clientX;
-    if (Math.abs(diff) > 40) goToSlide(diff > 0 ? Math.min(currentSlide+1, TOTAL_SLIDES-1) : Math.max(currentSlide-1, 0));
-  });
-  container.addEventListener('mousedown', e => { touchStartX = e.clientX; });
-  container.addEventListener('mouseup', e => {
-    const diff = touchStartX - e.clientX;
-    if (Math.abs(diff) > 40) goToSlide(diff > 0 ? Math.min(currentSlide+1, TOTAL_SLIDES-1) : Math.max(currentSlide-1, 0));
-  });
-}
-
-/* Sync has-value class for floating label */
-window.syncFlatField = function(id) {
-  const input = document.getElementById(id);
-  const wrap  = document.getElementById(id + '-wrap');
-  if (!input || !wrap) return;
-  wrap.classList.toggle('has-value', input.value.length > 0);
-};
-
-window.toggleFlatPassword = function(id, btn) {
+window._authTogglePassword = function(id, btn) {
   const input = document.getElementById(id);
   if (!input) return;
-  input.type = input.type === 'password' ? 'text' : 'password';
+  const wasHidden = input.type === 'password';
+  input.type = wasHidden ? 'text' : 'password';
+  btn.innerHTML = renderIcon(wasHidden ? 'eye_off' : 'eye', 18);
+};
+
+function renderForgotPassword() { return _renderForgotState('form', ''); }
+
+function _renderForgotState(state, email) {
+  return `
+    <div class="auth-backdrop" id="auth-fp-root">
+      <div class="auth-card">
+        <button class="auth-back-link" onclick="goBack()">${renderIcon('back', 18)} Back to sign in</button>
+        ${state === 'form' ? `
+          <div class="auth-icon-badge">${renderIcon('mail', 28)}</div>
+          <div class="auth-title auth-center">Forgot your password?</div>
+          <div class="auth-subtitle auth-center">No worries — enter the email tied to your account and we'll send you a link to reset it.</div>
+          <div class="input-group">
+            <label class="input-label" for="forgot-email">Email</label>
+            <input type="email" id="forgot-email" class="input-field" autocomplete="off"/>
+          </div>
+          <button class="btn btn-primary btn-full auth-cta" onclick="_authSendReset()">Send reset link</button>
+        ` : `
+          <div class="auth-success">
+            <div class="auth-success-icon">${renderIcon('check', 28)}</div>
+            <div class="auth-title">Check your email</div>
+            <div class="auth-subtitle">We sent a reset link to<br><strong style="color:var(--text);">${email}</strong></div>
+            <button class="btn btn-primary btn-full auth-cta" onclick="goBack()">Back to sign in</button>
+          </div>
+        `}
+      </div>
+    </div>
+  `;
+}
+
+window._authSendReset = function() {
+  const email = document.getElementById('forgot-email')?.value || '';
+  if (!email || !email.includes('@')) { showToast('Please enter a valid email address', 'error'); return; }
+  const root = document.getElementById('auth-fp-root');
+  if (root) root.outerHTML = _renderForgotState('success', email);
 };
 
 window.doLogin = function() {
@@ -473,16 +189,8 @@ window.doLogin = function() {
   setTimeout(() => { hideSpinner(); window.location.href = 'dashboard.html'; }, 1500);
 };
 
-window.sendReset = function() {
-  const email = document.getElementById('forgot-email')?.value;
-  if (!email || !email.includes('@')) { showToast('Please enter a valid email address', 'error'); return; }
-  showToast('Reset link sent to ' + email, 'success');
-  setTimeout(() => goBack(), 2000);
-};
-
 /* ---- Init ---- */
 document.body.innerHTML = renderPhoneShell(renderMarketing());
-setTimeout(attachSwipeListeners, 100);
 </script>
 </body>
 </html>
